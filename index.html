@@ -119,6 +119,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   transition:all .2s;
 }
 .tb-btn:hover{background:var(--cinnabar);color:#f6ecd8;border-color:var(--cinnabar);}
+.tb-btn.on{background:var(--cinnabar);color:#f6ecd8;border-color:var(--cinnabar);
+  box-shadow:0 0 0 3px rgba(158,43,30,.14);}
 
 /* 觉醒度 HUD */
 #hud{display:flex;gap:18px;align-items:center;margin-right:6px;}
@@ -400,6 +402,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
         <span class="meter-num" id="numLin">0</span>
       </div>
     </div>
+    <button class="tb-btn" id="btnFF" title="快进（F 键切换 · 按住 Ctrl 临时快进）">快进</button>
     <button class="tb-btn" id="btnMap">时局图</button>
     <button class="tb-btn" id="btnNotes">史实注</button>
     <button class="tb-btn" id="btnLog">回想</button>
@@ -2403,7 +2406,30 @@ let S = {
   unlocked:{}, endings:{}, log:[], chapter:""
 };
 
-let typing = false, typeTimer = null, pendingResolve = null;
+let typing = false, typeTimer = null, pendingResolve = null, pendingNode = null, pendingText = null;
+
+/* 快进：ffOn 为按钮开关（常驻），ffHold 为按住 Ctrl 的临时快进 */
+let ffOn = false, ffHold = false, ffTimer = null;
+const FF_DELAY = 25;                        // 快进时每一拍停留的毫秒数（约 40 拍/秒）
+const ffActive = () => ffOn || ffHold;
+function refreshFFBtn(){ const b = $("#btnFF"); if(b) b.classList.toggle("on", ffActive()); }
+function clearFF(){ if(ffTimer){ clearTimeout(ffTimer); ffTimer = null; } }
+function scheduleFF(){
+  clearFF();
+  if(!ffActive()) return;
+  ffTimer = setTimeout(() => {
+    ffTimer = null;
+    if(!ffActive()) return;
+    advance();                              // 遇选择/弹层时 advance 会自行退出，循环即止
+  }, FF_DELAY);
+}
+function applyFF(){
+  refreshFFBtn();
+  if(ffActive()){ finishTyping(); scheduleFF(); }
+  else { clearFF(); save(); }               // 停止快进时补一次存档
+}
+function setFFOn(v){ ffOn = !!v; applyFF(); }
+function setFFHold(v){ v = !!v; if(ffHold === v) return; ffHold = v; applyFF(); }
 
 /* --------------------------- 存档 --------------------------- */
 function save(){
@@ -2459,22 +2485,36 @@ function setTopbar(){
 /* --------------------------- 打字机 --------------------------- */
 function typeInto(node, text, speed){
   return new Promise(resolve => {
-    if(!speed){ node.textContent = text; resolve(); return; }
+    if(!speed || ffActive()){ node.textContent = text; resolve(); return; }
     typing = true;
     let i = 0;
     node.textContent = "";
+    const done = () => {
+      typing = false; typeTimer = null;
+      pendingResolve = null; pendingNode = null; pendingText = null;
+      resolve();
+    };
     const step = () => {
-      if(!typing){ node.textContent = text; typing = false; typeTimer = null; resolve(); return; }
+      if(!typing){ node.textContent = text; done(); return; }
       i += Math.max(1, Math.round(text.length / 260));
       node.textContent = text.slice(0, i);
-      if(i >= text.length){ typing = false; typeTimer = null; resolve(); return; }
+      if(i >= text.length){ done(); return; }
       typeTimer = setTimeout(step, speed);
     };
+    pendingResolve = resolve; pendingNode = node; pendingText = text;
     typeTimer = setTimeout(step, speed);
-    pendingResolve = resolve;
   });
 }
-function finishTyping(){ if(typing){ typing = false; if(typeTimer){clearTimeout(typeTimer);typeTimer=null;} } }
+// 立即结束打字：补全文字并兑现 promise（否则文字会停在半截、promise 永不 resolve）
+function finishTyping(){
+  if(!typing) return;
+  typing = false;
+  if(typeTimer){ clearTimeout(typeTimer); typeTimer = null; }
+  if(pendingNode) pendingNode.textContent = pendingText;
+  const r = pendingResolve;
+  pendingResolve = null; pendingNode = null; pendingText = null;
+  if(r) r();
+}
 
 /* --------------------------- 渲染 --------------------------- */
 const page = () => $("#page");
@@ -2575,7 +2615,7 @@ function renderCurrent(){
     page().appendChild(w);
     toast("时局图 · 新增标记");
     save();
-    S.idx++; setTimeout(renderCurrent, 520); return;
+    S.idx++; setTimeout(renderCurrent, ffActive() ? 60 : 520); return;
   }
   if(b.t === "tbc"){
     renderTBC(); return;
@@ -2589,10 +2629,12 @@ function renderCurrent(){
   if(built.node && built.speed){
     typeInto(built.node, built.text, built.speed).then(()=>{
       setHint(true);
+      scheduleFF();
     });
     setHint(false);
   }else{
     setHint(true);
+    scheduleFF();
   }
 }
 
@@ -2631,6 +2673,7 @@ function renderChoices(b){
 
 /* --------------------------- 场景推进 --------------------------- */
 function gotoScene(id){
+  choicePending = false;          // 进入新场景时清掉选择态，避免存档/重开后卡死
   S.scene = id; S.idx = 0; save();
   page().innerHTML = "";
   const sc = SCRIPT.scenes[id];
@@ -2641,12 +2684,21 @@ function gotoScene(id){
 }
 
 function advance(){
+  clearFF();
   if(choicePending) return;
   if(isOverlayOpen()) return;
   if(typing){ finishTyping(); return; }
   S.idx++;
-  save();
+  saveFF();
   renderCurrent();
+}
+// 快进时降频写盘：否则每 25ms 一次 JSON 序列化会拖慢推进
+let saveAt = 0;
+function saveFF(){
+  if(!ffActive()){ save(); return; }
+  const now = Date.now();
+  if(now - saveAt < 700) return;
+  saveAt = now; save();
 }
 
 /* --------------------------- 时局图 --------------------------- */
@@ -2768,7 +2820,14 @@ function openAbout(){
     + '一、觉醒度：沈怀瑾、林婉如各自独立的数值，由对话选择与事件应对积累，影响可解锁叙事线与最终结局。<br>'
     + '二、书信系统：关键信息以书信呈现，部分书信允许玩家改写结尾，产生后续回响。<br>'
     + '三、时局图动态呈现：随剧情推进，代表列强的动物逐一出现，占据版图。'
-    + '点击右上角「时局图」可随时凝视当前局势。</div></div>'
+    + '点击右上角「时局图」可随时凝视当前局势。<br>'
+    + '四、快进：文字即刻显示并自动推进，遇选择时自动停下。<br>'
+    + '　　· 按住 <b>Ctrl</b> 键 —— 临时快进，松开即停<br>'
+    + '　　· 按 <b>F</b> 键 —— 切换常驻快进（也可点右上角「快进」按钮）<br>'
+    + '　　· 快进途中随时点一下画面或按空格，即可停下</div></div>'
+  + '<div class="note-item"><div class="note-h">键盘操作</div><div class="note-b">'
+    + '<b>空格</b> / <b>回车</b> 继续　｜　<b>Ctrl</b>（按住）快进　｜　<b>F</b> 快进开关<br>'
+    + '<b>M</b> 时局图　｜　<b>L</b> 回想　｜　<b>Esc</b> 关闭弹层</div></div>'
   + '<div class="note-item"><div class="note-h">史实依据</div><div class="note-b">'
     + '剧中关键历史事件、人物言论、条约细节均有史料依据，详见「史实注」。'
     + '沈怀瑾、沈鹤龄、林婉如、黎景高、黎景明、周子安、陈道台等为虚构人物；'
@@ -2826,7 +2885,7 @@ function openOverlay(title, html){
   $("#overlays").appendChild(ov);
   setHint(false);
 }
-function closeOverlay(){ $("#overlays").innerHTML = ""; setHint(true); }
+function closeOverlay(){ $("#overlays").innerHTML = ""; setHint(true); scheduleFF(); }
 
 /* --------------------------- 菜单 --------------------------- */
 function openMenu(){
@@ -2857,6 +2916,7 @@ function newGame(){
 }
 function doLoad(){
   if(!load()){ toast("没有找到存档"); return; }
+  choicePending = false; clearFF();
   $("#titleScreen").classList.add("fade-out");
   setTimeout(()=>$("#titleScreen").classList.add("hidden"), 700);
   $("#game").classList.remove("hidden");
@@ -2882,6 +2942,7 @@ $("#btnContinue").addEventListener("click", doLoad);
 $("#btnEndings").addEventListener("click", openEndings);
 $("#btnAbout").addEventListener("click", openAbout);
 
+$("#btnFF").addEventListener("click", () => setFFOn(!ffOn));
 $("#btnMap").addEventListener("click", openMap);
 $("#btnNotes").addEventListener("click", openNotes);
 $("#btnLog").addEventListener("click", openLog);
@@ -2894,11 +2955,19 @@ $("#stage").addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){ closeOverlay(); return; }
   if($("#game").classList.contains("hidden")) return;
+
+  // 快进：按住 Ctrl 临时快进；按 F 切换常驻开关
+  if(e.key === "Control"){ setFFHold(true); return; }
+  if(e.key === "f" || e.key === "F"){ e.preventDefault(); setFFOn(!ffOn); return; }
+  if(e.ctrlKey) return;                       // 其余 Ctrl 组合键交给浏览器
+
   if(isOverlayOpen()) return;
   if(e.key === " " || e.key === "Enter"){ e.preventDefault(); advance(); }
   if(e.key === "m" || e.key === "M") openMap();
   if(e.key === "l" || e.key === "L") openLog();
 });
+document.addEventListener("keyup", e => { if(e.key === "Control") setFFHold(false); });
+window.addEventListener("blur", () => setFFHold(false));   // 失焦时松开 Ctrl，避免卡在快进
 
 $("#btnContinue").disabled = !hasSave();
 
