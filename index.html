@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>时局图 · 历史互动视觉小说</title>
+<style>
+/* ============================================================
+   《时局图》历史互动视觉小说
+   单文件网页版 · 双击即可运行 · 无需联网
+   ============================================================ */
+
+:root{
+  --paper:      #efe6d4;
+  --paper-2:    #e5d9c0;
+  --paper-3:    #d9caac;
+  --ink:        #221f1b;
+  --ink-soft:   #4c453b;
+  --ink-faint:  #7d7364;
+  --cinnabar:   #9e2b1e;
+  --cinnabar-2: #c0392b;
+  --gold:       #8a6a3b;
+  --seal:       #a8322a;
+  --shadow:     rgba(60,45,25,.18);
+  --font-serif: "Source Han Serif SC","Noto Serif SC","Songti SC",STSong,"SimSun","宋体",serif;
+  --font-kai:   "Kaiti SC",STKaiti,"KaiTi","楷体",var(--font-serif);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-serif);
+  color:var(--ink);
+  background:#1a1712;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* 宣纸底纹 */
+.paper-bg{
+  position:fixed;inset:0;z-index:0;
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(ellipse at 20% 15%, rgba(255,252,242,.85), transparent 55%),
+    radial-gradient(ellipse at 82% 88%, rgba(200,180,140,.35), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(120,100,70,.030) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(120,100,70,.022) 0 1px, transparent 1px 4px);
+}
+.paper-bg::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(70,55,30,.30) 100%);
+}
+
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.hidden{display:none !important;}
+
+/* ============================ 标题页 ============================ */
+#titleScreen{
+  position:fixed;inset:0;z-index:60;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#161310;
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(120,90,45,.28), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(255,240,200,.014) 0 1px, transparent 1px 3px);
+  transition:opacity .7s ease;
+}
+#titleScreen.fade-out{opacity:0;pointer-events:none;}
+.ts-inner{text-align:center;position:relative;padding:0 24px;}
+.ts-title{
+  font-size:clamp(58px,11vw,116px);
+  letter-spacing:.16em;
+  color:#e8dcc0;
+  text-indent:.16em;
+  text-shadow:0 0 42px rgba(200,150,70,.30), 0 3px 0 rgba(0,0,0,.5);
+  font-weight:400;
+}
+.ts-sub{
+  margin-top:20px;font-size:clamp(12px,1.5vw,15px);
+  letter-spacing:.62em;text-indent:.62em;color:#a8946c;
+}
+.ts-poem{
+  margin:42px auto 0;max-width:520px;
+  font-family:var(--font-kai);font-size:16px;line-height:2.3;
+  color:#8d7c5c;letter-spacing:.08em;
+}
+.ts-rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,#6d5a38,transparent);margin:38px auto;}
+.ts-menu{display:flex;flex-direction:column;gap:14px;align-items:center;}
+.ts-btn{
+  min-width:236px;padding:13px 30px;
+  border:1px solid #4d4230;color:#cbb894;
+  font-size:15px;letter-spacing:.34em;text-indent:.34em;
+  background:rgba(255,235,190,.02);
+  transition:all .28s ease;
+}
+.ts-btn:hover:not(:disabled){background:rgba(190,140,60,.14);border-color:#96794a;color:#f0e2c2;letter-spacing:.4em;}
+.ts-btn:disabled{opacity:.28;cursor:default;}
+.ts-foot{position:absolute;bottom:26px;width:100%;text-align:center;font-size:11.5px;color:#5e5340;letter-spacing:.22em;}
+
+/* ============================ 主舞台 ============================ */
+#game{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;}
+
+/* 顶栏 */
+#topbar{
+  flex:0 0 auto;height:52px;
+  display:flex;align-items:center;gap:14px;
+  padding:0 20px;
+  border-bottom:1px solid rgba(120,95,55,.28);
+  background:linear-gradient(180deg, rgba(239,230,212,.94), rgba(229,217,192,.80));
+  backdrop-filter:blur(3px);
+}
+.tb-chapter{font-size:14.5px;letter-spacing:.16em;color:var(--ink);white-space:nowrap;}
+.tb-chapter b{color:var(--cinnabar);font-weight:400;}
+.tb-meta{font-size:12px;color:var(--ink-faint);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tb-spacer{flex:1;}
+.tb-btn{
+  font-size:12.5px;letter-spacing:.14em;color:var(--ink-soft);
+  padding:6px 12px;border:1px solid rgba(120,95,55,.34);
+  background:rgba(255,250,235,.4);
+  transition:all .2s;
+}
+.tb-btn:hover{background:var(--cinnabar);color:#f6ecd8;border-color:var(--cinnabar);}
+
+/* 觉醒度 HUD */
+#hud{display:flex;gap:18px;align-items:center;margin-right:6px;}
+.meter{display:flex;align-items:center;gap:8px;}
+.meter-name{font-size:11.5px;color:var(--ink-faint);letter-spacing:.1em;white-space:nowrap;}
+.meter-bar{width:76px;height:5px;background:rgba(90,72,42,.18);position:relative;overflow:hidden;}
+.meter-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#8a6a3b,var(--cinnabar));transition:width .7s cubic-bezier(.2,.8,.3,1);}
+.meter-num{font-size:11.5px;color:var(--gold);min-width:20px;font-variant-numeric:tabular-nums;}
+
+/* 正文区 */
+#stage{flex:1;overflow-y:auto;position:relative;scroll-behavior:smooth;}
+#stage::-webkit-scrollbar{width:8px;}
+#stage::-webkit-scrollbar-thumb{background:rgba(120,95,55,.28);}
+
+.page{
+  max-width:840px;margin:0 auto;
+  padding:52px 34px 190px;
+  min-height:100%;
+}
+
+/* 章节卡 */
+.chapter-card{
+  text-align:center;padding:64px 0 58px;
+  border-bottom:1px solid rgba(120,95,55,.22);
+  margin-bottom:44px;
+}
+.cc-num{font-size:12px;letter-spacing:.6em;text-indent:.6em;color:var(--ink-faint);}
+.cc-title{
+  font-size:clamp(44px,7vw,74px);letter-spacing:.2em;text-indent:.2em;
+  color:var(--ink);margin:16px 0 14px;font-weight:400;
+  text-shadow:0 2px 0 rgba(255,250,235,.6);
+}
+.cc-sub{font-family:var(--font-kai);font-size:15px;color:var(--gold);letter-spacing:.2em;text-indent:.2em;}
+.cc-date{margin-top:20px;font-size:12.5px;color:var(--ink-faint);letter-spacing:.2em;}
+
+/* 文本块 */
+.beat{margin-bottom:30px;animation:fadeUp .5s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+.speaker{
+  display:inline-block;font-size:13.5px;letter-spacing:.2em;
+  color:var(--cinnabar);border-bottom:1px solid rgba(158,43,30,.35);
+  padding-bottom:3px;margin-bottom:12px;
+}
+.speaker .role{color:var(--ink-faint);font-size:11.5px;letter-spacing:.1em;margin-left:8px;}
+.line{font-size:18.5px;line-height:2.05;letter-spacing:.045em;color:var(--ink);text-align:justify;}
+.line.narration{
+  font-family:var(--font-kai);font-size:17.5px;line-height:2.15;
+  color:var(--ink-soft);text-indent:2em;
+}
+.line.emph{color:var(--cinnabar);}
+.line.mono{font-family:var(--font-kai);text-indent:0;}
+
+/* 引文 / 史料 */
+.quote{
+  border-left:3px solid var(--gold);
+  background:rgba(255,250,235,.42);
+  padding:18px 22px;margin:6px 0;
+}
+.quote .q-text{font-family:var(--font-kai);font-size:16.5px;line-height:2.1;color:var(--ink-soft);}
+.quote .q-src{margin-top:10px;font-size:12.5px;color:var(--ink-faint);letter-spacing:.1em;text-align:right;}
+
+/* 书信 */
+.letter{
+  border:1px solid rgba(120,95,55,.42);
+  background:
+    linear-gradient(180deg, rgba(252,246,232,.92), rgba(243,234,214,.92));
+  padding:26px 28px;margin:8px 0;
+  box-shadow:0 3px 14px rgba(90,70,40,.10);
+  position:relative;
+}
+.letter::before{
+  content:"";position:absolute;inset:5px;border:1px solid rgba(120,95,55,.16);pointer-events:none;
+}
+.letter-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-bottom:12px;margin-bottom:16px;
+  border-bottom:1px dashed rgba(120,95,55,.34);
+}
+.letter-to{font-size:14px;letter-spacing:.14em;color:var(--ink);}
+.letter-date{font-size:12px;color:var(--ink-faint);letter-spacing:.08em;}
+.letter-body{font-family:var(--font-kai);font-size:17px;line-height:2.2;color:var(--ink-soft);white-space:pre-wrap;}
+.letter-sig{margin-top:18px;text-align:right;font-family:var(--font-kai);font-size:15px;color:var(--ink-soft);}
+.letter-sig .seal{
+  display:inline-block;margin-left:10px;
+  width:34px;height:34px;line-height:1.05;
+  border:1.5px solid var(--seal);color:var(--seal);
+  font-size:12px;font-family:var(--font-serif);
+  display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;
+  padding:3px;letter-spacing:0;transform:rotate(-3deg);
+  text-align:center;
+}
+
+/* 选择 */
+.choices{margin:34px 0 10px;animation:fadeUp .5s ease both;}
+.choice-prompt{
+  font-size:13.5px;color:var(--gold);letter-spacing:.2em;
+  margin-bottom:16px;display:flex;align-items:center;gap:12px;
+}
+.choice-prompt::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(138,106,59,.4),transparent);}
+.choice{
+  display:block;width:100%;text-align:left;
+  padding:17px 22px;margin-bottom:11px;
+  border:1px solid rgba(120,95,55,.34);
+  background:rgba(255,250,235,.46);
+  font-size:16.5px;line-height:1.7;letter-spacing:.03em;color:var(--ink);
+  transition:all .22s ease;position:relative;
+}
+.choice:hover{
+  background:rgba(158,43,30,.075);
+  border-color:var(--cinnabar);
+  transform:translateX(6px);
+  box-shadow:-3px 0 0 var(--cinnabar);
+}
+.choice .mark{color:var(--cinnabar);margin-right:10px;font-size:13px;}
+.choice .hint{display:block;margin-top:7px;font-size:12.5px;color:var(--ink-faint);letter-spacing:.04em;font-family:var(--font-kai);}
+
+/* 底部提示 */
+#tapHint{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  height:64px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg, rgba(239,230,212,0), rgba(239,230,212,.95) 55%);
+  pointer-events:none;opacity:0;transition:opacity .4s;
+}
+#tapHint.on{opacity:1;}
+#tapHint span{font-size:12.5px;color:var(--ink-faint);letter-spacing:.3em;animation:breathe 2.4s ease-in-out infinite;}
+@keyframes breathe{0%,100%{opacity:.42;}50%{opacity:.95;}}
+
+/* 觉醒度提示 */
+#toast{
+  position:fixed;right:26px;bottom:80px;z-index:40;
+  display:flex;flex-direction:column;gap:9px;align-items:flex-end;pointer-events:none;
+}
+.toast-item{
+  background:rgba(34,31,27,.90);color:#f0e2c2;
+  padding:9px 17px;font-size:13px;letter-spacing:.14em;
+  border-left:3px solid var(--cinnabar);
+  animation:toastIn .45s ease both;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(22px);}to{opacity:1;transform:none;}}
+.toast-item.out{opacity:0;transform:translateX(22px);transition:all .5s;}
+
+/* ============================ 弹层 ============================ */
+.overlay{
+  position:fixed;inset:0;z-index:70;
+  background:rgba(22,19,14,.72);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;padding:26px;
+  animation:fadeIn .28s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.panel{
+  background:var(--paper);
+  background-image:repeating-linear-gradient(0deg, rgba(120,100,70,.026) 0 1px, transparent 1px 3px);
+  border:1px solid rgba(120,95,55,.5);
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  max-width:900px;width:100%;max-height:88vh;
+  display:flex;flex-direction:column;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px;border-bottom:1px solid rgba(120,95,55,.3);
+}
+.panel-title{font-size:16px;letter-spacing:.28em;color:var(--ink);}
+.panel-close{font-size:20px;color:var(--ink-faint);padding:0 6px;line-height:1;}
+.panel-close:hover{color:var(--cinnabar);}
+.panel-body{padding:24px;overflow-y:auto;flex:1;}
+.panel-body::-webkit-scrollbar{width:8px;}
+.panel-body::-webkit-scrollbar-thumb{background:rgba(120,95,55,.3);}
+
+/* 时局图 */
+.map-wrap{display:flex;gap:26px;flex-wrap:wrap;justify-content:center;}
+#mapSvg{width:100%;max-width:430px;height:auto;display:block;}
+.map-side{flex:1;min-width:250px;}
+.map-side h4{font-size:13px;letter-spacing:.24em;color:var(--gold);margin-bottom:14px;font-weight:400;}
+.map-legend{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+.legend-row{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;
+  border:1px solid rgba(120,95,55,.22);background:rgba(255,250,235,.36);
+  opacity:.34;transition:all .4s;
+}
+.legend-row.on{opacity:1;background:rgba(158,43,30,.07);border-color:rgba(158,43,30,.4);}
+.legend-glyph{
+  width:34px;height:34px;flex:0 0 34px;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid currentColor;font-size:17px;
+  transform:rotate(-2deg);
+}
+.legend-txt{font-size:13.5px;line-height:1.55;}
+.legend-txt b{font-weight:400;color:var(--ink);letter-spacing:.08em;}
+.legend-txt em{display:block;font-style:normal;font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;margin-top:2px;}
+.map-progress{font-size:12.5px;color:var(--ink-faint);letter-spacing:.12em;line-height:1.9;border-top:1px solid rgba(120,95,55,.22);padding-top:14px;}
+
+/* 回想 */
+.log-entry{padding:14px 0;border-bottom:1px dashed rgba(120,95,55,.24);}
+.log-who{font-size:12.5px;color:var(--cinnabar);letter-spacing:.16em;margin-bottom:6px;}
+.log-txt{font-size:15.5px;line-height:1.95;color:var(--ink-soft);font-family:var(--font-kai);}
+.log-chapter{font-size:12px;color:var(--gold);letter-spacing:.2em;margin:22px 0 4px;}
+
+/* 史实注 */
+.note-item{padding:16px 0;border-bottom:1px dashed rgba(120,95,55,.24);}
+.note-item:last-child{border-bottom:none;}
+.note-h{font-size:14.5px;color:var(--ink);letter-spacing:.1em;margin-bottom:8px;}
+.note-h::before{content:"▍";color:var(--cinnabar);margin-right:8px;font-size:12px;}
+.note-b{font-size:14.5px;line-height:1.95;color:var(--ink-soft);font-family:var(--font-kai);}
+.note-b .ref{color:var(--ink-faint);font-size:12.5px;}
+
+/* 结局图鉴 */
+.ending-card{
+  border:1px solid rgba(120,95,55,.3);padding:18px 20px;margin-bottom:14px;
+  background:rgba(255,250,235,.36);position:relative;
+}
+.ending-card.locked{opacity:.42;}
+.ending-card h4{font-size:17px;letter-spacing:.18em;font-weight:400;margin-bottom:8px;color:var(--ink);}
+.ending-card.locked h4{color:var(--ink-faint);}
+.ending-card p{font-size:13.5px;line-height:1.85;color:var(--ink-soft);font-family:var(--font-kai);}
+.ending-card .tag{
+  position:absolute;right:16px;top:16px;font-size:11px;letter-spacing:.16em;
+  color:var(--cinnabar);border:1px solid var(--cinnabar);padding:2px 7px;
+}
+
+/* 未完待续 */
+.tbc{
+  border:1px solid rgba(120,95,55,.36);background:rgba(255,250,235,.4);
+  padding:30px 30px 26px;margin:20px 0;
+}
+.tbc h3{font-size:20px;letter-spacing:.3em;color:var(--cinnabar);font-weight:400;margin-bottom:8px;}
+.tbc .tbc-sub{font-size:12.5px;color:var(--ink-faint);letter-spacing:.16em;margin-bottom:22px;}
+.tbc-row{display:flex;gap:14px;padding:11px 0;border-top:1px dashed rgba(120,95,55,.24);font-size:14px;}
+.tbc-row .k{flex:0 0 108px;color:var(--gold);letter-spacing:.12em;}
+.tbc-row .v{flex:1;color:var(--ink-soft);line-height:1.75;font-family:var(--font-kai);}
+
+@media (max-width:720px){
+  .tb-meta{display:none;}
+  #hud{display:none;}
+  .page{padding:34px 18px 170px;}
+  .panel-body{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="paper-bg"></div>
+
+<!-- ================= 标题页 ================= -->
+<div id="titleScreen">
+  <div class="ts-inner">
+    <div class="ts-title">时局图</div>
+    <div class="ts-sub">历史互动视觉小说</div>
+    <div class="ts-poem">
+      沉沉酣睡我中华，哪知爱国即爱家！<br>
+      国民知醒宜今醒，莫待土分裂似瓜。
+    </div>
+    <div class="ts-rule"></div>
+    <div class="ts-menu">
+      <button class="ts-btn" id="btnNew">新 的 一 局</button>
+      <button class="ts-btn" id="btnContinue">续 前 一 局</button>
+      <button class="ts-btn" id="btnEndings">结 局 图 鉴</button>
+      <button class="ts-btn" id="btnAbout">创 作 说 明</button>
+    </div>
+  </div>
+  <div class="ts-foot">1895 — 1899 · 序章 与 第一章 完整体验版</div>
+</div>
+
+<!-- ================= 主界面 ================= -->
+<div id="game" class="hidden">
+  <div id="topbar">
+    <div class="tb-chapter" id="tbChapter"></div>
+    <div class="tb-meta" id="tbMeta"></div>
+    <div class="tb-spacer"></div>
+    <div id="hud">
+      <div class="meter">
+        <span class="meter-name">沈怀瑾</span>
+        <div class="meter-bar"><div class="meter-fill" id="fillShen"></div></div>
+        <span class="meter-num" id="numShen">0</span>
+      </div>
+      <div class="meter">
+        <span class="meter-name">林婉如</span>
+        <div class="meter-bar"><div class="meter-fill" id="fillLin"></div></div>
+        <span class="meter-num" id="numLin">0</span>
+      </div>
+    </div>
+    <button class="tb-btn" id="btnMap">时局图</button>
+    <button class="tb-btn" id="btnNotes">史实注</button>
+    <button class="tb-btn" id="btnLog">回想</button>
+    <button class="tb-btn" id="btnMenu">菜单</button>
+  </div>
+  <div id="stage"><div class="page" id="page"></div></div>
+  <div id="tapHint"><span>点 击 继 续</span></div>
+</div>
+
+<div id="toast"></div>
+<div id="overlays"></div>
+
+<script>
+/* ============================================================================
+   《时局图》· 引擎 + 剧本
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   《时局图》动物标记 —— 每一章解锁一只，逐章逼近
+   --------------------------------------------------------------------------- */
+const MARKERS = [
+  { id:"ru", glyph:"熊", name:"俄国", region:"东北 · 东清铁路",
+    color:"#6b4a2f", cx:288, cy:96,  ch:1,
+    desc:"三国干涉还辽后，俄国以「还辽有功」索取报酬，诱迫签订《中俄密约》，将东北划入势力范围。" },
+  { id:"de", glyph:"犬", name:"德国", region:"山东 · 胶州湾",
+    color:"#7a6a4a", cx:316, cy:170, ch:2,
+    desc:"1897年德国借巨野教案派兵强占胶州湾，成为列强在中国强占租借地的始作俑者。" },
+  { id:"uk", glyph:"虎", name:"英国", region:"长江流域 · 威海卫 · 九龙",
+    color:"#8a5a20", cx:270, cy:200, ch:2,
+    desc:"英国租借威海卫和九龙半岛，将长江流域划为势力范围。原《时局图》中以虎喻英。" },
+  { id:"us", glyph:"鹰", name:"美国", region:"沿海通商口岸",
+    color:"#5c5a52", cx:330, cy:216, ch:3,
+    desc:"美国提出「门户开放」政策，要求各国在华势力范围对美国开放通商。原《时局图》中以鹰喻美。" },
+  { id:"fr", glyph:"蛙", name:"法国", region:"两广 · 云贵",
+    color:"#4a6b3a", cx:228, cy:266, ch:3,
+    desc:"法国租借广州湾，将云南、广西、广东划入势力范围。原《时局图》中以蛤蟆喻法。" },
+  { id:"jp", glyph:"日", name:"日本", region:"台湾 · 澎湖 · 福建",
+    color:"#a8322a", cx:322, cy:256, ch:0,
+    desc:"《马关条约》割让台湾、澎湖；后日本又将福建划入势力范围。原《时局图》中以太阳喻日。" }
+];
+
+/* ---------------------------------------------------------------------------
+   史实注 —— 供审读、送审与教学使用
+   --------------------------------------------------------------------------- */
+const NOTES = {
+  "序章":[
+    { h:"《马关条约》", b:"光绪二十一年三月廿三（1895年4月17日），李鸿章与伊藤博文在日本马关签订《讲和条约》，即《马关条约》。主要内容：中国认朝鲜「独立自主」；割让奉天省南边地方（辽东半岛）、台湾全岛及所有附属各岛屿、澎湖列岛；赔款库平银二万万两；开沙市、重庆、苏州、杭州为通商口岸。后因三国干涉还辽，又追加白银三千万两作为「赎辽费」。<span class='ref'>《马关条约》正文</span>" },
+    { h:"赔款的分量", b:"二万万两白银，约相当于清政府三年多的财政收入，折合日元约3.6亿，相当于当时日本四年多的财政收入。这笔赔款直接支撑了日本的金本位制与后续军备扩张。" },
+    { h:"公车上书", b:"光绪二十一年四月初八（1895年5月2日），康有为联络十八省举人一千三百余人，联名上书光绪帝，提出拒和、迁都、练兵、变法四项主张，是为「公车上书」。书未递至御前。同年，康有为中进士，授工部主事。" },
+    { h:"杨椒山祠", b:"即杨继盛祠，在北京宣武门外达智桥。杨继盛（号椒山）为明嘉靖时兵部员外郎，因弹劾严嵩下狱被杀害。甲午战后，此处为京城士人聚议之所。" },
+    { h:"严复与《救亡决论》", b:"严复（1854—1921），字又陵，福建侯官人，天津水师学堂总教习。1895年在天津《直报》上连续发表《论世变之亟》《原强》《辟韩》《救亡决论》等文。《救亡决论》开篇即言：「天下理之最明而势所必至者，如今日中国不变法则必亡是已。」" },
+    { h:"关于题记的说明", b:"序章题记引谭嗣同「四万万人齐下泪，天涯何处是神州」两句。此诗作于丙申（1896年），晚于序章所写时间。此处系以题记定调，非剧中人物当时所读，特此说明。" }
+  ],
+  "第一章":[
+    { h:"三国干涉还辽", b:"1895年4月23日，俄国联合德国、法国向日本发出照会，要求日本放弃占有辽东半岛。日本无力对抗三国，于5月5日声明接受，11月8日交还辽东，同时向清政府索取白银三千万两「赎辽费」。俄国随即以「还辽有功」为由索取报酬。" },
+    { h:"《中俄密约》", b:"光绪二十二年四月（1896年6月3日），李鸿章在莫斯科与俄国签订《御敌互相援助条约》，通称《中俄密约》。俄方获得在黑龙江、吉林地方修筑铁路直达海参崴的权利，即东清铁路（中东铁路），并可沿铁路设护路军、开矿、经商。条约长期秘而不宣，经西文报纸披露后始为国人知晓。" },
+    { h:"西伯利亚铁路与不冻港", b:"俄国于1891年动工修筑西伯利亚大铁路。其远东缺少常年不冻的出海港口：海参崴每年封冻约三个月，波罗的海与黑海出口亦受制于人。寻找不冻港是俄国远东政策的长期动力，旅顺、大连因此成为其觊觎目标。" },
+    { h:"严复的思想", b:"严复在《原强》中提出：「是以今日要政，统于三端：一曰鼓民力，二曰开民智，三曰新民德。」他所译《天演论》以「物竞天择，适者生存」立论，其译文云：「物竞者，物争自存也；天择者，存其宜种也。」《天演论》于1897年译成，1898年正式刊行。" },
+    { h:"关于《国闻报》的史实说明", b:"《国闻报》由严复等人创办于光绪二十三年十月（1897年10月），馆设天津。本作第一章时间跨度为1895至1896年，其时该报尚未问世，故剧中沈怀瑾所投之报为天津《直报》，严复在剧中「打算自己办一份报」一语，即为此事伏笔。" },
+    { h:"虚构人物声明", b:"沈怀瑾、沈鹤龄、林婉如、黎景高、黎景明、周子安、陈道台等为虚构人物；严复、康有为、张謇、谭嗣同、丘逢甲、刘永福等为历史人物。虚构人物的经历与对话系创作性重构，用以串联宏大历史与个体体验，不代表史实记载。" }
+  ]
+};
+
+/* ---------------------------------------------------------------------------
+   结局图鉴
+   --------------------------------------------------------------------------- */
+const ENDINGS = [
+  { id:"e1", name:"醒狮", tag:"最佳结局",
+    cond:"关键节点选择「启蒙与实业并重」，沈怀瑾与林婉如合力",
+    body:"沈怀瑾回到湖南，以《时局图》为教材，在乡间创办新式学堂；林婉如从上海输送资金与技术。两人书信往来二十年，见证中国从沉睡到觉醒的漫长历程。结局画面：一幅泛黄的《时局图》旁，是一张新的地图——新一代中国人正在绘制。" },
+  { id:"e2", name:"孤臣泪", tag:"激进线",
+    cond:"沈怀瑾在戊戌政变后选择武力反抗",
+    body:"沈怀瑾参与自立军起义，事败被杀。林婉如在码头等待一个永远不会归来的人。最后场景是她在《时局图》背面写下「国民知醒宜今醒，莫待土分裂似瓜」——但她写的那个「醒」，已经是太迟了。" },
+  { id:"e3", name:"沥血肥虎", tag:"保守线",
+    cond:"关键节点选择与列强合作或明哲保身",
+    body:"林婉如的家族企业在夹缝中挣扎求生，最终被外国资本吞并。沈怀瑾在湖南教书为生，看着乡间的孩子们依旧读着八股文章。画面拉远，《时局图》上的动物们越来越近，而中国版图上，没有一丝光亮。" },
+  { id:"e4", name:"永清", tag:"台湾线",
+    cond:"第四章选择赴台助战",
+    body:"沈怀瑾随刘永福的黑旗军参加台南保卫战，最终战死。他倒在台湾的土地上，手中紧握一面蓝底黄虎旗，旗上的老虎首朝北方。旁白：为表明台湾永远属于中国，年号「永清」。但四万万人齐下泪，天涯何处是神州？" },
+  { id:"e5", name:"东渡", tag:"革命线",
+    cond:"沈怀瑾东渡日本，林婉如留在上海",
+    body:"两人分隔两地。沈怀瑾在东京结识了更多革命者，成为中国革命的一粒种子。多年后他回到上海，已是另一个时代。林婉如在码头接他，手中拿着一张新的报纸，上面写着「辛亥革命」。两人相视而笑。" }
+];
+
+/* ---------------------------------------------------------------------------
+   剧本
+   --------------------------------------------------------------------------- */
+const SCRIPT = {
+  start: "p_intro",
+  scenes: {
+
+  /* ======================= 序章「春愁」 ======================= */
+  "p_intro":{
+    ch:"序章", chTitle:"春愁", place:"题记", date:"",
+    dark:true,
+    beats:[
+      {t:"n", x:"光绪二十一年，春。"},
+      {t:"n", x:"黄海的水已经凉了半年。北洋水师沉在底下，铁甲舰上的人还没有全部捞上来。"},
+      {t:"n", x:"北京城里的春天照旧来。柳絮照旧飞，宣武门外的茶照旧三个大钱一壶。"},
+      {t:"n", x:"只是这一年的榜，迟迟没有发。"},
+      {t:"n", x:"而比榜先到的，是别的消息。"},
+      {t:"q", x:"四万万人齐下泪，天涯何处是神州。", src:"谭嗣同《有感》"},
+      {t:"n", x:"——是为题记。"}
+    ],
+    next:"p_tea"
+  },
+
+  "p_tea":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 宣武门外 · 广和茶楼",
+    date:"光绪二十一年 三月廿三",
+    card:{ num:"序 章", title:"春 愁", sub:"—— 消息比榜先到 ——" },
+    beats:[
+      {t:"n", x:"广和茶楼二楼靠窗的位置，是等榜的举子们包下的。"},
+      {t:"n", x:"三月的风还带着土腥味，从窗纸缝里钻进来，把桌上的瓜子皮吹得打转。"},
+      {t:"d", w:"周子安", r:"同乡举子", x:"怀瑾，你今儿个第七回往楼下看了。"},
+      {t:"d", w:"沈怀瑾", x:"我在看人。"},
+      {t:"d", w:"周子安", x:"看人？街上有什么人好看的。都是些赶车的、挑水的、卖炊饼的。"},
+      {t:"d", w:"沈怀瑾", x:"子安兄，你不觉得这几天，街上的人走路都比从前快么。"},
+      {t:"d", w:"周子安", x:"那是急着躲风。"},
+      {t:"d", w:"沈怀瑾", x:"不是。是慌。"},
+      {t:"n", x:"周子安笑了，给他续了茶。"},
+      {t:"d", w:"周子安", x:"你这个人，从湘乡一路想到北京，想得太多。榜下来，中了，去做官；不中，回乡教书。天下的事，轮得着我们操心？"},
+      {t:"d", w:"沈怀瑾", x:"轮不着。"},
+      {t:"d", w:"沈怀瑾", x:"可是子安兄，我父亲今年五十五了。他十九岁见过长毛，三十岁信洋务，四十岁办义学。"},
+      {t:"d", w:"沈怀瑾", x:"他这一辈子，就信一件事：中国能强起来。"},
+      {t:"d", w:"周子安", x:"那不好么？"},
+      {t:"d", w:"沈怀瑾", x:"好。可我怕他信错了。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"楼下的街面忽然静了一瞬。"},
+      {t:"n", x:"那一瞬很短，短得像是有人把整条街的声音一把攥住了。"},
+      {t:"n", x:"然后声音回来了，比刚才大十倍。"},
+      {t:"d", w:"街上的人", r:"跑着喊", x:"马关——马关画押了！"},
+      {t:"d", w:"街上的人", x:"台湾给日本了！澎湖也给了！"},
+      {t:"d", w:"街上的人", x:"赔银子——二万万两！"},
+      {t:"n", x:"茶盏摔在地上，碎了一只。"},
+      {t:"n", x:"有人站起来，椅子翻倒。有人骂李鸿章。有人不信，说这是谣言，是日本人放的谣言。"},
+      {t:"n", x:"有人哭。"},
+      {t:"n", x:"沈怀瑾没有动。他坐在那里，手指按着茶碗的边，一动不动。"},
+      {t:"d", w:"周子安", x:"怀瑾？怀瑾你怎么了？"},
+      {t:"d", w:"沈怀瑾", x:"二万万两。"},
+      {t:"d", w:"周子安", x:"什么？"},
+      {t:"d", w:"沈怀瑾", x:"我父亲算过。朝廷一年的进项，连田赋带关税带厘金，七千万两上下。"},
+      {t:"d", w:"沈怀瑾", x:"二万万两——三年。"},
+      {t:"d", w:"沈怀瑾", x:"三年不吃不喝，不修河，不养兵，不赈灾，一文不花，才还得清。"},
+      {t:"n", x:"周子安张了张嘴，没说出话。"},
+      {t:"d", w:"沈怀瑾", x:"子安兄，这不是赔款。"},
+      {t:"d", w:"沈怀瑾", x:"这是有人把刀架在我们脖子上，问我们：还有没有别的？"},
+      {t:"n", x:"他说完这句话，才发现自己的手在抖。"}
+    ],
+    next:"p_choice1"
+  },
+
+  "p_choice1":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 宣武门外", date:"同日",
+    beats:[
+      {t:"n", x:"消息像水一样漫进茶楼，从这一桌流到那一桌。"},
+      {t:"n", x:"有人已经往外跑了。有人在问杨椒山祠在哪儿。"},
+      {t:"n", x:"沈怀瑾手里的茶，已经凉透了。"},
+      {t:"choice", prompt:"你打算怎么办？", opts:[
+        { x:"去杨椒山祠。举子们都在往那边去。", hint:"亲眼看见愤怒是什么样子",
+          to:"p_ci", gain:{shen:3}, flag:"go_ci" },
+        { x:"回客栈。把邸报上的一字一句看完。", hint:"先弄明白，再决定恨谁",
+          to:"p_ke", gain:{shen:2}, flag:"go_ke" }
+      ]}
+    ]
+  },
+
+  "p_ci":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 达智桥 · 杨椒山祠", date:"光绪二十一年 三月廿四",
+    beats:[
+      {t:"n", x:"杨椒山祠在宣武门外达智桥。供的是明朝的杨继盛。"},
+      {t:"n", x:"杨继盛参严嵩，被杖毙在诏狱里。三百年了，北京人还供着他。"},
+      {t:"n", x:"沈怀瑾赶到时，祠外的胡同已经挤不进人。"},
+      {t:"n", x:"全是长衫。全是举子的青布袍子。一千多人，从祠门口一直排到街口。"},
+      {t:"d", w:"举子甲", x:"拒和！"},
+      {t:"d", w:"举子乙", x:"迁都！"},
+      {t:"d", w:"举子丙", x:"变法！"},
+      {t:"n", x:"声音是乱的。乱的里面，有一样东西是齐的——怒。"},
+      {t:"n", x:"有人咬破手指，在绢上写字。"},
+      {t:"n", x:"血是暗的，写在白绢上，一会儿就发黑。"},
+      {t:"n", x:"那两个字是：拒和。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"忽然人群里起了骚动。有人跪下了。"},
+      {t:"n", x:"是个很年轻的举子，颧骨高，眼睛红得像几天没睡。"},
+      {t:"d", w:"台湾举子", x:"诸位！诸位！我是台湾来的——"},
+      {t:"d", w:"台湾举子", x:"台湾不是一块地！台湾有二百万人！"},
+      {t:"d", w:"台湾举子", x:"朝廷把台湾给了日本，问过我们没有？"},
+      {t:"d", w:"台湾举子", x:"我父亲葬在台南，我儿子生在台北。你们说，我们以后算哪国人？"},
+      {t:"n", x:"没有人回答他。"},
+      {t:"n", x:"一千多个举子站在那里，没有一个人能回答他。"},
+      {t:"n", x:"沈怀瑾挤过去，想问他的名字。人太多，他被推开了。"},
+      {t:"n", x:"他只记得那张脸。还有那人腰间别着一块木牌，上面刻着两个字：黎氏。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"人群忽然往一个方向涌。"},
+      {t:"d", w:"有人喊", x:"南海康先生来了！"},
+      {t:"n", x:"一个三十七八岁的男人被人扶着站上石阶。他穿着一身半旧的青衫，声音很亮。"},
+      {t:"d", w:"康有为", r:"广东南海 · 举人", x:"诸君！"},
+      {t:"d", w:"康有为", x:"今日之事，不是李鸿章一个人的罪。"},
+      {t:"d", w:"康有为", x:"是三十年来，只学洋人皮毛、不学洋人根本的罪！"},
+      {t:"d", w:"康有为", x:"船买了，炮买了，铁路修了，电报通了——可朝廷还是那个朝廷，官还是那些官，八股还是那个八股！"},
+      {t:"d", w:"康有为", x:"甲午一战，把三十年的面子全打掉了。诸君，面子打掉是好事——"},
+      {t:"d", w:"康有为", x:"打掉了，才知道里头是空的！"},
+      {t:"q", x:"下诏鼓天下之气，迁都定天下之本，练兵强天下之势，变法成天下之治。", src:"康有为《上清帝第二书》，光绪二十一年四月初八"},
+      {t:"n", x:"沈怀瑾站在人堆里，听着这些话。"},
+      {t:"n", x:"他忽然觉得，胸口有什么东西被点着了。"},
+      {t:"n", x:"那东西烧得不旺，但是烫。"}
+    ],
+    next:"p_gongche"
+  },
+
+  "p_ke":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 宣武门外 · 悦来客栈", date:"光绪二十一年 三月廿四",
+    beats:[
+      {t:"n", x:"沈怀瑾一个人回了客栈。"},
+      {t:"n", x:"他不要听别人喊。他要自己把那张纸看明白。"},
+      {t:"n", x:"邸报抄件是三天前的。字是馆阁体，工整得近乎无情。"},
+      {t:"q", x:"一、中国认明朝鲜国确为完全无缺之独立自主；\n二、中国将管理下开地方之权并将该地方所有堡垒、军器工厂及一切属公物件，永远让与日本：奉天省南边地方……台湾全岛及所有附属各岛屿……澎湖列岛……\n四、中国约将库平银二万万两交与日本，作为赔偿军费……",
+        src:"《马关条约》节录（光绪二十一年三月廿三）"},
+      {t:"n", x:"他一条一条读下去，读得很慢。"},
+      {t:"n", x:"读到「永远让与」四个字，他停下来，用手指在桌面上划了一遍。"},
+      {t:"n", x:"永远。"},
+      {t:"n", x:"这两个字他认得。七岁开蒙就认得。"},
+      {t:"n", x:"可是今天，他觉得自己好像第一次真的认得。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"包袱底下压着一封家书，是离家时父亲塞给他的。"},
+      {t:"letter", title:"家书", to:"怀瑾吾儿", date:"光绪二十一年 二月",
+        body:"榜下之后，无论中与不中，先归家一次。\n\n近日朝中议论纷纭，为父观之，日人之事，终须以夷制夷。俄人强而近，日人强而远。远者可拒，近者当结。此理至明，汝勿为浮议所动。\n\n家中桂树今年开得早。汝母已晒了两坛桂花酒，等你回来。\n\n父 鹤龄 字",
+        sig:"沈鹤龄", seal:"鹤龄"},
+      {t:"n", x:"他读完了，把信折好，放回包袱里。"},
+      {t:"n", x:"然后他看见了包袱最底下的那张纸。"},
+      {t:"n", x:"是前几天的《直报》，从天津带来的，包书用的。"},
+      {t:"n", x:"他一向不看报纸。报纸上的话，多半是官话。"},
+      {t:"n", x:"那天他鬼使神差地翻开了。"},
+      {t:"q", x:"天下理之最明而势所必至者，如今日中国不变法则必亡是已。", src:"严复《救亡决论》，载天津《直报》，光绪二十一年"},
+      {t:"n", x:"沈怀瑾把这一行看了三遍。"},
+      {t:"n", x:"第一遍，他觉得自己看错了。"},
+      {t:"n", x:"第二遍，他数了数那十几个字，一个字一个字地数。"},
+      {t:"n", x:"第三遍，他站起来，把窗户推开了。"},
+      {t:"n", x:"外面的北京还是那个北京。卖炊饼的还在吆喝，赶车的还在骂人。"},
+      {t:"n", x:"可是他觉得自己站的地方，跟昨天不一样了。"},
+      {t:"n", x:"昨天他读的是圣贤书，想的是金榜题名。"},
+      {t:"n", x:"今天有一句话在他脑子里转，转得他坐不住——"},
+      {t:"n", x:"不变法，必亡。", emph:true}
+    ],
+    next:"p_gongche"
+  },
+
+  "p_gongche":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 都察院门前", date:"光绪二十一年 四月初八",
+    beats:[
+      {t:"n", x:"四月初八，一千三百多名举子，从各自住的会馆出发，往都察院去。"},
+      {t:"n", x:"他们手里拿的是同一份东西——康有为写的《上清帝第二书》，一万八千字。"},
+      {t:"n", x:"沈怀瑾也在里面。"},
+      {t:"n", x:"他手里那份是从同乡会馆抄来的，抄的人手快，字迹潦草，好几处用朱笔改了。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"都察院的朱漆大门关着。"},
+      {t:"n", x:"门口站着两个兵。兵很年轻，脸上没什么表情。"},
+      {t:"d", w:"举子", x:"我们是各省举子，有书上呈！"},
+      {t:"d", w:"守门兵", x:"大人不见客。"},
+      {t:"d", w:"举子", x:"这是万民书！"},
+      {t:"d", w:"守门兵", x:"大人不见客。"},
+      {t:"n", x:"一遍一遍。问的和答的，都没有变。"},
+      {t:"n", x:"太阳从东边挪到头顶，又从头顶挪到西边。"},
+      {t:"n", x:"一千多人，在都察院门口站了整整一天。"},
+      {t:"n", x:"最后，那扇门没有开。"},
+      {t:"n", x:"书没有递上去。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"沈怀瑾回会馆的路上，一句话没说。"},
+      {t:"n", x:"他第一次知道了一件事：原来愤怒是递不进去的。"},
+      {t:"n", x:"原来这个朝廷，连听都不想听。"}
+    ],
+    next:"p_night"
+  },
+
+  "p_night":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 宣武门外大街", date:"光绪二十一年 四月初八 夜",
+    beats:[
+      {t:"n", x:"回去的路上，天已经黑了。"},
+      {t:"n", x:"四月的北京，夜里还冷。有人家在烧晚饭的灶，烟从瓦缝里冒出来，是柴火的味道。"},
+      {t:"n", x:"沈怀瑾一个人走在宣武门外大街上。"},
+      {t:"n", x:"身边还有别的举子，三三两两地走。没有人说话。"},
+      {t:"n", x:"白天在都察院门口喊了一整天的那几个人，这会儿也低着头，各走各的。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"他忽然想起一件事。"},
+      {t:"n", x:"今天站在都察院门口的，是一千三百人。"},
+      {t:"n", x:"这一千三百人，是十八省来的举子。是每个省里最会读书的一批人。"},
+      {t:"n", x:"换句话说，是全中国最聪明的一千三百个人。"},
+      {t:"n", x:"这一千三百个最聪明的人，站在一扇门前，站了一整天。"},
+      {t:"n", x:"门没有开。"},
+      {t:"n", x:"那扇门后面坐着的，是这个国家的官。"},
+      {t:"n", x:"而这些官，是三十年前、五十年前，从同一扇门里考进去的人。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"沈怀瑾停下来，站在街上。"},
+      {t:"n", x:"他抬头看天。北京的天上有星星，很亮。"},
+      {t:"n", x:"他忽然想：这片天底下，有四万万人。"},
+      {t:"n", x:"四万万人里，今天知道台湾被割了的，有多少？"},
+      {t:"n", x:"知道台湾在哪儿的，又有多少？"},
+      {t:"n", x:"他不知道答案。"},
+      {t:"n", x:"他只知道一件事：自己今天之前，也不知道。"},
+      {t:"n", x:"他今天之所以知道，是因为他到了北京，是因为他会试来了京城，是因为他恰好认得字。"},
+      {t:"n", x:"那湘乡县那二十九万七千个不认得字的人呢？", emph:true},
+      {t:"n", x:"——"},
+      {t:"n", x:"这个念头像一根刺，从这一夜起扎进了他心里。"},
+      {t:"n", x:"后来他用了很多年，才把这根刺拔出来。"},
+      {t:"n", x:"拔出来的方式，是把它变成别的东西。"}
+    ],
+    next:"p_lijm"
+  },
+
+  "p_lijm":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 湖南会馆", date:"光绪二十一年 四月初八 夜",
+    beats:[
+      {t:"n", x:"会馆的院子里，有人在洗脚，有人在写家书，有人在骂。"},
+      {t:"n", x:"沈怀瑾坐在台阶上，看着天。"},
+      {t:"d", w:"陌生人", x:"你是湖南来的？"},
+      {t:"n", x:"沈怀瑾抬头。"},
+      {t:"n", x:"是那天在杨椒山祠见过的脸——颧骨高，眼睛红。"},
+      {t:"d", w:"沈怀瑾", x:"是。湘乡，沈怀瑾。"},
+      {t:"d", w:"黎景明", r:"台湾嘉义 · 举人", x:"台湾嘉义，黎景明。"},
+      {t:"n", x:"他坐下来，从袖子里摸出一个小酒壶，喝了一口，又递过来。"},
+      {t:"n", x:"沈怀瑾不喝酒。他还是接了过来。"},
+      {t:"d", w:"黎景明", x:"今天那扇门，你看见了吧。"},
+      {t:"d", w:"沈怀瑾", x:"看见了。"},
+      {t:"d", w:"黎景明", x:"我去年就看见过一回。不过不是在北京，是在台北。"},
+      {t:"d", w:"黎景明", x:"台北的百姓听说要把台湾割给日本，鸣锣罢市。全城的铺子关了三天。"},
+      {t:"d", w:"黎景明", x:"巡抚衙门前面，跪了几千人。有老人，有妇人，有抱着孩子的。"},
+      {t:"d", w:"沈怀瑾", x:"后来呢？"},
+      {t:"d", w:"黎景明", x:"后来？"},
+      {t:"n", x:"他笑了一下。那个笑很难看。"},
+      {t:"d", w:"黎景明", x:"后来朝廷说，这是已经议定的事，不许再闹。"},
+      {t:"n", x:"——"},
+      {t:"d", w:"黎景明", x:"我有个族兄，在台南府做官。他给我写信说，台湾的百姓自己定了个年号。"},
+      {t:"d", w:"沈怀瑾", x:"年号？"},
+      {t:"d", w:"黎景明", x:"永清。"},
+      {t:"d", w:"黎景明", x:"永远归大清。"},
+      {t:"n", x:"沈怀瑾半天没有说话。"},
+      {t:"n", x:"一个已经被朝廷割掉的地方，自己定了个年号，叫「永清」。"},
+      {t:"n", x:"黎景明把一页纸推过来。"},
+      {t:"n", x:"纸上是他族兄的手笔。字很端正，像是写给后人的。"},
+      {t:"letter", title:"台湾来信（节录）", to:"景明弟", date:"光绪二十一年 四月 于台南",
+        body:"景明弟如晤：\n\n台事已不可为。朝廷弃台，如弃敝屣。然台民不肯弃台。\n\n本月二十五日，官绅于台北立「台湾民主国」，年号永清，旗用蓝地黄虎，虎首内向，以示心向神州之意。唐抚台为总统，丘逢甲率义军守土，刘永福率黑旗军自台南北上。\n\n兄知此举于势无补。然二百万人之身家性命，总得有人替他们喊一声。\n\n兄已决意留此。弟在京中，好自为之。\n\n兄 景高 手书",
+        sig:"黎景高", seal:"景高"},
+      {t:"n", x:"沈怀瑾把这页纸看了两遍。"},
+      {t:"d", w:"沈怀瑾", x:"景明兄，令兄的地址，能不能给我一份。"},
+      {t:"d", w:"黎景明", x:"你要做什么？"},
+      {t:"d", w:"沈怀瑾", x:"我想给他写信。"},
+      {t:"d", w:"黎景明", x:"你又不认得他。"},
+      {t:"d", w:"沈怀瑾", x:"我认得台湾。"},
+      {t:"n", x:"黎景明看了他很久。"},
+      {t:"n", x:"然后他拿起笔，写下一行字，推过来。"},
+      {t:"n", x:"那行字，后来在沈怀瑾的箱子里放了三年。"}
+    ],
+    next:"p_end"
+  },
+
+  "p_end":{
+    ch:"序章", chTitle:"春愁", place:"北京 · 永定门外", date:"光绪二十一年 四月 末",
+    beats:[
+      {t:"n", x:"这一年，梁启超二十三岁。"},
+      {t:"n", x:"他后来写道——"},
+      {t:"q", x:"吾国四千余年大梦之唤醒，实自甲午战败，割台湾，偿二百兆以后始也。", src:"梁启超《戊戌政变记》"},
+      {t:"n", x:"——"},
+      {t:"n", x:"沈怀瑾二十岁那年，读的是《四书》，写的是八股。"},
+      {t:"n", x:"二十二岁这年，他在都察院门口站了一整天，什么也没递上去。"},
+      {t:"n", x:"他离开北京的时候，箱子底下压着三样东西。"},
+      {t:"n", x:"一张《马关条约》的邸报抄件。"},
+      {t:"n", x:"一张天津《直报》。"},
+      {t:"n", x:"一个台湾人的地址。"},
+      {t:"map", reveal:["jp"], text:"台湾、澎湖已入日本之手。时局图的第一笔，落在了东南海上。"},
+      {t:"n", x:"他往南走。运河的水是浑的，船走得很慢。"},
+      {t:"n", x:"他有的是时间想一件事："},
+      {t:"n", x:"如果不变法必亡，那么，从哪里变起？", emph:true}
+    ],
+    next:"c1_shanghai"
+  },
+
+  /* ======================= 第一章「熊」 ======================= */
+  "c1_shanghai":{
+    ch:"第一章", chTitle:"熊", place:"上海 · 十六铺码头", date:"光绪二十一年 秋",
+    card:{ num:"第 一 章", title:"熊", sub:"—— 辽东的阴影 ——" },
+    beats:[
+      {t:"n", x:"从北京回湖南，走运河，走长江，要在上海换船。"},
+      {t:"n", x:"沈怀瑾在上海住了三天。"},
+      {t:"n", x:"三天里，他看见的东西，比在湘乡二十年看见的加起来还多。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"十六铺码头上，停着挂着外国旗的轮船。"},
+      {t:"n", x:"英国旗，德国旗，法国旗，还有一面他没认出来的——红白蓝三色，后来才知道那是俄国的。"},
+      {t:"n", x:"码头上的人说话，他大半听不懂。有宁波话，有广东话，还有一种夹着英语的怪腔调。"},
+      {t:"n", x:"江面上，外国兵舰的烟囱冒着黑烟。那烟比岸上任何一座房子的屋顶都高。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"然后他看见了一件事。"},
+      {t:"n", x:"一个中国人和一个洋人吵起来了。"},
+      {t:"n", x:"用的是英语。说得又快又流利。"},
+      {t:"n", x:"那是个年轻女子。"},
+      {t:"n", x:"她穿的是中国衣裳——月白的袄，深色的裙。可是站在那里跟洋人说话的架势，是沈怀瑾从没见过的。"},
+      {t:"n", x:"不卑不亢。像两个平等的人在谈生意。"},
+      {t:"n", x:"洋人最后耸了耸肩，走了。"},
+      {t:"n", x:"她转过身，对身后的伙计说了句什么。伙计赶紧跑开。"},
+      {t:"n", x:"沈怀瑾站在那里看了很久。"},
+      {t:"n", x:"他听见有人喊她「林小姐」。"},
+      {t:"n", x:"他不知道她叫什么，也不知道她后来会在他生命里占多大分量。"},
+      {t:"n", x:"他只记住了一件事——"},
+      {t:"n", x:"原来中国人，可以这样跟洋人说话。", emph:true}
+    ],
+    next:"c1_home"
+  },
+
+  "c1_home":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家老宅", date:"光绪二十一年 秋",
+    beats:[
+      {t:"n", x:"湘乡的秋天比北京暖和。"},
+      {t:"n", x:"沈家的老宅是道光年间修的，三进，门口两棵桂花树，这时候正开。"},
+      {t:"n", x:"沈鹤龄五十五岁，头发白了大半，腰还直。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"他十九岁那年见过太平军。"},
+      {t:"n", x:"湘乡被围过。他躲在山里，看着自己的先生被长毛带走，再没回来。"},
+      {t:"n", x:"从那以后，他信一件事：中国要强，得学洋人的本事。"},
+      {t:"n", x:"他这辈子最得意的一件事，是光绪初年捐了一笔钱，给县里办了一所义学，教的是算学和格致。"},
+      {t:"n", x:"甲午战败的消息传来那天，他把书房里的《海国图志》全部收进了箱子。"},
+      {t:"n", x:"然后他病了半个月。"},
+      {t:"n", x:"——"},
+      {t:"d", w:"沈鹤龄", r:"沈怀瑾之父 · 湘乡乡绅", x:"回来就好。榜的事，不急。"},
+      {t:"d", w:"沈怀瑾", x:"父亲，我在北京，去都察院递过书。"},
+      {t:"d", w:"沈鹤龄", x:"递上去了？"},
+      {t:"d", w:"沈怀瑾", x:"没有。门没开。"},
+      {t:"n", x:"沈鹤龄沉默了一会儿。"},
+      {t:"d", w:"沈鹤龄", x:"怀瑾，你以为我不知道门不会开？"},
+      {t:"d", w:"沈鹤龄", x:"我十九岁那年，见过比这更大的事。长毛打到湘乡的时候，县里的读书人也去府城请过兵。"},
+      {t:"d", w:"沈鹤龄", x:"门也是关的。"},
+      {t:"d", w:"沈鹤龄", x:"可是后来长毛还是平了。为什么？"},
+      {t:"d", w:"沈鹤龄", x:"因为曾国藩，因为李鸿章。因为有人真的去练了兵、办了厂、造了船。"},
+      {t:"d", w:"沈鹤龄", x:"空喊没有用。要做事。"},
+      {t:"d", w:"沈怀瑾", x:"父亲，那甲午呢？"},
+      {t:"d", w:"沈怀瑾", x:"北洋水师，不也是船，不也是炮？"},
+      {t:"n", x:"这句话说出口，他就后悔了。"},
+      {t:"n", x:"沈鹤龄的脸白了一下。"},
+      {t:"n", x:"然后他转过身，去拨香炉里的灰。拨了很久。"}
+    ],
+    next:"c1_village"
+  },
+
+  "c1_village":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 三十里外的田庄", date:"光绪二十一年 九月",
+    beats:[
+      {t:"n", x:"回乡的第五天，沈怀瑾去了一趟乡下。"},
+      {t:"n", x:"沈家在三十里外有一处田庄，租给十七户佃农种。"},
+      {t:"n", x:"每年秋收要去收租。往年是管事去。今年他自己去。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"田庄的老佃户姓何，六十多岁，背驼得很厉害，见了少东家就要跪。"},
+      {t:"n", x:"沈怀瑾把他扶住了。"},
+      {t:"d", w:"沈怀瑾", x:"何伯，今年收成怎么样？"},
+      {t:"d", w:"何伯", r:"佃农", x:"回少东家，还成。比去年强些。"},
+      {t:"n", x:"沈怀瑾在田埂上坐下来，跟他说话。"},
+      {t:"n", x:"说了半天天气、雨水、稻子。然后他问了一句："},
+      {t:"d", w:"沈怀瑾", x:"何伯，你晓得日本在哪儿么？"},
+      {t:"d", w:"何伯", x:"……"},
+      {t:"d", w:"何伯", x:"日本？"},
+      {t:"d", w:"沈怀瑾", x:"东边海上。跟我们打了一仗的那个。"},
+      {t:"d", w:"何伯", x:"哦，哦。打过的。"},
+      {t:"n", x:"他想了想，又说："},
+      {t:"d", w:"何伯", x:"是跟洋人打么？"},
+      {t:"n", x:"沈怀瑾说，是。"},
+      {t:"n", x:"何伯点点头，不再问了。他弯腰去拔田埂上的草。"},
+      {t:"n", x:"——"},
+      {t:"d", w:"沈怀瑾", x:"何伯，我听说，朝廷把台湾给了日本。你知道台湾么？"},
+      {t:"d", w:"何伯", x:"台湾……"},
+      {t:"n", x:"老人把草根上的土拍掉，慢慢地说："},
+      {t:"d", w:"何伯", x:"是在南边吧。"},
+      {t:"d", w:"沈怀瑾", x:"是。在海上，一个岛。"},
+      {t:"d", w:"何伯", x:"那……离我们这儿，得走多少天？"},
+      {t:"d", w:"沈怀瑾", x:"坐船，一个多月。"},
+      {t:"n", x:"何伯哦了一声。"},
+      {t:"n", x:"然后他说了一句让沈怀瑾记了很多年的话。"},
+      {t:"d", w:"何伯", x:"少东家，那是大人们的事。"},
+      {t:"d", w:"何伯", x:"我们种田的，管不了那些。今年的租子……能不能缓半个月？"},
+      {t:"n", x:"——"},
+      {t:"n", x:"回去的路上，沈怀瑾一句话没说。"},
+      {t:"n", x:"他不是气何伯。"},
+      {t:"n", x:"他是气自己。"},
+      {t:"n", x:"何伯说的没有错。台湾离他太远了，远得不像真的。"},
+      {t:"n", x:"一个种田的人，一年到头，眼睛里只有三样东西：天、地、租。"},
+      {t:"n", x:"天不下雨，全家饿死。地不长粮，全家饿死。租交不上，还是全家饿死。"},
+      {t:"n", x:"在这样的日子里头，一个海上的岛，跟他有什么关系？"},
+      {t:"n", x:"——"},
+      {t:"n", x:"沈怀瑾忽然明白了一件事。"},
+      {t:"n", x:"他今天读到的那些报纸上的字，他心里的那些火，严先生信里的那些道理——"},
+      {t:"n", x:"在湘乡，只到得了沈家书房为止。"},
+      {t:"n", x:"出了那道门，就什么都不是了。", emph:true},
+      {t:"n", x:"他忽然想起在北京的那一夜，想起自己问自己的那句话——"},
+      {t:"n", x:"四万万人里，知道台湾被割了的，有多少？"},
+      {t:"n", x:"那天他没有答案。"},
+      {t:"n", x:"今天他有了一个。", emph:true}
+    ],
+    next:"c1_father"
+  },
+
+  "c1_father":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 九月",
+    beats:[
+      {t:"n", x:"三天后，沈鹤龄把儿子叫进书房。"},
+      {t:"n", x:"桌上摊着一张报纸，是长沙寄来的。"},
+      {t:"d", w:"沈鹤龄", x:"俄国人出手了。"},
+      {t:"d", w:"沈怀瑾", x:"我听说了。"},
+      {t:"d", w:"沈鹤龄", x:"俄国联合德国、法国，逼日本把辽东还给我们。"},
+      {t:"d", w:"沈鹤龄", x:"这是好事。这是天大的好事。"},
+      {t:"d", w:"沈鹤龄", x:"朝廷里有人说，这叫「以夷制夷」。用洋人制洋人。"},
+      {t:"d", w:"沈鹤龄", x:"我们打不过日本。可是俄国打得过。俄国愿意帮我们，为什么不用？"},
+      {t:"n", x:"沈怀瑾没有立刻答话。"},
+      {t:"d", w:"沈怀瑾", x:"父亲，俄国人为什么要帮我们？"},
+      {t:"d", w:"沈鹤龄", x:"……"},
+      {t:"d", w:"沈怀瑾", x:"没有白帮的道理。"},
+      {t:"n", x:"沈鹤龄把报纸折起来，压在镇纸下面。"},
+      {t:"d", w:"沈鹤龄", x:"你才二十二岁，你懂什么。"},
+      {t:"n", x:"这是父亲第一次这样跟他说话。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"那一夜，沈怀瑾没睡。"},
+      {t:"n", x:"他想起一件事：辽东是还回来了。"},
+      {t:"n", x:"可是为了还辽东，朝廷又赔了日本三千万两。"},
+      {t:"n", x:"三千万两。赎回来的地，是自己花钱赎的。"},
+      {t:"n", x:"而且——这笔钱，是谁逼着赔的？"},
+      {t:"n", x:"是俄国。"},
+      {t:"n", x:"俄国帮了忙，顺手让中国多赔了三千万两。"},
+      {t:"n", x:"这笔账，算下来，到底是谁赚了？", emph:true}
+    ],
+    next:"c1_choice"
+  },
+
+  "c1_choice":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡", date:"光绪二十一年 九月 夜",
+    beats:[
+      {t:"n", x:"更漏敲过三下。沈鹤龄房里的灯还亮着。"},
+      {t:"n", x:"沈怀瑾知道，父亲明天要去长沙，见一位从关外回来的候补道台。"},
+      {t:"n", x:"父亲想让他一起去。父亲没有说，可是灯亮着，就是在等。"},
+      {t:"choice", prompt:"你在廊下站了很久。桂花落了一地。", opts:[
+        { x:"跟父亲去长沙。他要亲眼看看，俄国人在东北到底做了什么。",
+          hint:"以「联俄」之名同行，以己身之眼取证",
+          to:"c1_cons", gain:{shen:3}, flag:"went_changsha" },
+        { x:"不去。他留在湘乡，写信给严复。",
+          hint:"从纸上弄清俄国的意图",
+          to:"c1_rad", gain:{shen:4}, flag:"wrote_yanfu" }
+      ]}
+    ]
+  },
+
+  "c1_cons":{
+    ch:"第一章", chTitle:"熊", place:"长沙 · 城南 · 陈宅", date:"光绪二十一年 十月",
+    beats:[
+      {t:"n", x:"长沙，城南，一位候补道台的宅子。"},
+      {t:"n", x:"道台姓陈，从奉天回来，在关外待了七年。"},
+      {t:"n", x:"席上还有一个人。是俄国商人，中文说得磕磕巴巴，穿一身黑呢子礼服，坐在主位旁边。"},
+      {t:"n", x:"他的名字，沈怀瑾没记住。"},
+      {t:"n", x:"他记住的是这人吃东西的样子——不紧不慢，像是在自己家里。"},
+      {t:"n", x:"——"},
+      {t:"d", w:"陈道台", x:"俄国人要在东北修铁路。从赤塔，穿过黑龙江，一直到海参崴。"},
+      {t:"d", w:"陈道台", x:"这是好事。铁路修到哪里，钱就流到哪里，生意就做到哪里。"},
+      {t:"d", w:"沈怀瑾", x:"大人，这条铁路，谁出钱？"},
+      {t:"d", w:"陈道台", x:"中俄合办。"},
+      {t:"d", w:"沈怀瑾", x:"谁管账？"},
+      {t:"n", x:"席上静了一下。"},
+      {t:"n", x:"沈鹤龄在桌子底下碰了碰他的腿。"},
+      {t:"d", w:"陈道台", x:"少年人，你这话问得不好。"},
+      {t:"d", w:"陈道台", x:"俄国人是来帮忙的。你这样的问法，是拿人家当贼防。"},
+      {t:"n", x:"沈怀瑾低下头，没有再问。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"散席之后，那个俄国人在廊下抽烟。"},
+      {t:"n", x:"沈怀瑾从他身边走过，他忽然开口了。"},
+      {t:"d", w:"俄国商人", x:"你是读书人。我告诉你一件事。"},
+      {t:"d", w:"俄国商人", x:"你们中国人，有一个毛病。"},
+      {t:"d", w:"俄国商人", x:"你们总是问：这是谁的。铁路是谁的，港口是谁的，土地是谁的。"},
+      {t:"d", w:"俄国商人", x:"我们俄国人不问这个。"},
+      {t:"d", w:"俄国商人", x:"我们只问：这条铁路能不能修成，这个港口冬天结不结冰。"},
+      {t:"d", w:"俄国商人", x:"能修成的，就是我们的。"},
+      {t:"n", x:"他笑着说的。他一直在笑。"},
+      {t:"n", x:"沈怀瑾后来想起来，最让他难受的不是这句话本身。"},
+      {t:"n", x:"是他笑的时候，满座的中国官员，也在笑。", emph:true}
+    ],
+    next:"c1_yanfu"
+  },
+
+  "c1_rad":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 十月",
+    beats:[
+      {t:"n", x:"沈怀瑾没有去长沙。"},
+      {t:"n", x:"他把自己关在书房里，把父亲收进箱子的那些书，一本一本翻了出来。"},
+      {t:"n", x:"《海国图志》。魏源编的，五十卷，讲的是西洋各国的地理、船炮、政事。"},
+      {t:"n", x:"《瀛寰志略》。徐继畬编的，比《海国图志》更细。"},
+      {t:"n", x:"还有几本从上海买来的西书译本，纸都发黄了。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"他要弄明白一件事：俄国人到底想干什么。"},
+      {t:"n", x:"翻了七天，他找到了。"},
+      {t:"n", x:"俄国没有不冻港。"},
+      {t:"n", x:"海参崴一年封冻三个月。波罗的海封冻。黑海的出口捏在土耳其手里。"},
+      {t:"n", x:"一个这么大的国家，找不到一个冬天不结冰的出海港口。"},
+      {t:"n", x:"这就是它的病。"},
+      {t:"n", x:"而它的药，在东方。"},
+      {t:"n", x:"旅顺。大连。朝鲜的釜山。"},
+      {t:"n", x:"——"},
+      {t:"n", x:"沈怀瑾在纸上画了一条线。"},
+      {t:"n", x:"西伯利亚铁路。从莫斯科，一直画到海参崴。"},
+      {t:"n", x:"画完，他盯着那条线看了很久。"},
+      {t:"n", x:"那条线穿过的地方，有一大半，写的是中国的地名。", emph:true}
+    ],
+    next:"c1_yanfu"
+  },
+
+  "c1_yanfu":{
+    ch:"第一章", chTitle:"熊", place:"天津 — 湘乡 · 书信往还", date:"光绪二十一年 冬",
+    beats:[
+      {t:"n", x:"沈怀瑾写了一封信，寄往天津水师学堂。"},
+      {t:"n", x:"他不知道严复会不会回。"},
+      {t:"n", x:"一个举子，给一个总教习写信。这样的信，严复每天大概要收十几封。"},
+      {t:"n", x:"二十天后，回信到了。"},
+      {t:"n", x:"——"},
+      {t:"letter", title:"严复来信", to:"怀瑾仁弟足下", date:"光绪二十一年 十一月 于天津",
+        body:"怀瑾仁弟足下：\n\n来书具悉。足下年二十二，居湘乡，而言及西伯利亚铁路与不冻港之求，此非乡里少年所能道，仆甚异之。\n\n来书问：俄人何以助我？\n\n仆答曰：俄人非助我，俄人自助耳。国与国相接，无恩义可言，惟有强弱。强者取之，弱者与之。此天演之公例，非一二人之善恶也。今日之俄，犹昔日之英、法；今日之英、法，犹昔日之俄。易地则皆然。\n\n仆近年读西人书，见其论生物之繁变，有所谓「物竞天择」之说。物竞者，物争自存也；天择者，存其宜种也。推之国之相竞，亦复如是。\n\n足下问自何处变起。仆以为，统于三端：一曰鼓民力，二曰开民智，三曰新民德。三者不立，则船炮虽利，终为他人守耳。\n\n北洋水师之覆，非船不利，非炮不猛。是操船放炮之人，与夫号令操船放炮之人，犹是三十年前之人也。\n\n足下有志，可多读西书，先通其语言文字，而后能知其政教之本。勿徒以气盛为学问。\n\n仆近有所见，辄投之天津《直报》。足下若有作，亦可投之，仆当为之道地。\n\n严复 顿首",
+        sig:"严复", seal:"又陵"},
+      {t:"n", x:"沈怀瑾把这封信读了三遍。"},
+      {t:"n", x:"第一遍，他读的是「俄人非助我，俄人自助耳」。"},
+      {t:"n", x:"第二遍，他读的是「物竞天择，适者生存」。"},
+      {t:"n", x:"第三遍，他读的是那一句——"},
+      {t:"q", x:"北洋水师之覆，非船不利，非炮不猛。是操船放炮之人，与夫号令操船放炮之人，犹是三十年前之人也。", src:"严复来信"},
+      {t:"n", x:"他忽然明白了一件事。"},
+      {t:"n", x:"洋务三十年，买的是船，是炮，是机器。"},
+      {t:"n", x:"可是用这些东西的人，还是原来的人。"},
+      {t:"n", x:"把最利的刀交到不会用的人手里，刀越好，伤得越重。", emph:true}
+    ],
+    next:"c1_draft"
+  },
+
+  "c1_draft":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 腊月",
+    beats:[
+      {t:"n", x:"严复在信末说：足下若有见，可投之天津《直报》。仆可为之先容。"},
+      {t:"n", x:"沈怀瑾铺开纸。"},
+      {t:"n", x:"他写了七天，写了两千字，题目叫《论俄人东来之由》。"},
+      {t:"n", x:"写完，他念给父亲听。"},
+      {t:"n", x:"沈鹤龄从头听到尾，没有打断。听完，只说了一句：「结尾要改。」"},
+      {t:"n", x:"沈怀瑾回到书房，看着最后一段，停住了。"},
+      {t:"choice", prompt:"这篇文章的结尾，你打算怎么写？", opts:[
+        { x:"「故今日之要，不在联俄，亦不在拒俄，而在自强。自强之道，先开民智。」",
+          hint:"从严复的「三端」落笔——把力气放在人身上",
+          to:"c1_draft_a", gain:{shen:3}, flag:"theme_民智" },
+        { x:"「故今日之要，在练兵。无兵则言皆虚。请朝廷练新军三十万，以固边防。」",
+          hint:"从甲午之败落笔——把力气放在枪炮上",
+          to:"c1_draft_b", gain:{shen:2}, flag:"theme_练兵" },
+        { x:"「故今日之要，在察俄人之所为，事事记录，布告天下，使人知其非义举。」",
+          hint:"从揭露落笔——先让天下人看见真相",
+          to:"c1_draft_c", gain:{shen:2}, flag:"theme_揭露" }
+      ]}
+    ]
+  },
+
+  "c1_draft_a":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 腊月",
+    beats:[
+      {t:"n", x:"他把这一句写下来，又抄了一遍。"},
+      {t:"n", x:"抄到「先开民智」四个字，他忽然想起杨椒山祠外面那一千多张脸。"},
+      {t:"n", x:"那些人里，认字的不少，懂天下的不多。"},
+      {t:"n", x:"再往乡下走一层呢？"},
+      {t:"n", x:"湘乡县三十万人。识字的，怕是不到三千。"},
+      {t:"n", x:"剩下二十九万七千人，割的是台湾还是辽东，跟他们有什么关系？"},
+      {t:"n", x:"——这就是严先生说的「民智」。", emph:true},
+      {t:"n", x:"文章寄出去了。"},
+      {t:"n", x:"两个月后，《直报》登了出来。署名是「湘乡来稿」，没有名字。"},
+      {t:"n", x:"沈鹤龄把那张报纸看了很久，然后折起来，放进了自己的书箱。"}
+    ],
+    next:"c1_miyue"
+  },
+
+  "c1_draft_b":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 腊月",
+    beats:[
+      {t:"n", x:"他把这一句写下来。"},
+      {t:"n", x:"写完，他自己念了一遍，觉得很有力量。"},
+      {t:"n", x:"三十万新军。有了兵，才有话可说。"},
+      {t:"n", x:"文章寄出去了。两个月后，《直报》登了出来。"},
+      {t:"n", x:"半个月后，严复来了第二封信。"},
+      {t:"letter", title:"严复第二书", to:"怀瑾仁弟", date:"光绪二十二年 正月",
+        body:"怀瑾仁弟足下：\n\n大文已刊，读者颇有称之者。然仆有一言，愿足下思之。\n\n足下云练新军三十万。问：此三十万人，自何处来？谁人教之？教之者何人？饷从何处出？\n\n甲午之役，淮军、湘军、北洋水师，非无兵也。兵不能战，非兵之罪。\n\n仆尝谓：中国今日之病，不在无兵，在无可用兵之人；不在无可用兵之人，在无可以生可用兵之人的风气。\n\n足下年少气盛，仆不以为非。然望足下勿以练兵一事自限。\n\n严复 顿首",
+        sig:"严复", seal:"又陵"},
+      {t:"n", x:"沈怀瑾把信读了两遍。"},
+      {t:"n", x:"他有点不服气。"},
+      {t:"n", x:"可是严复问的那几个问题，他一个也答不上来。"}
+    ],
+    next:"c1_miyue"
+  },
+
+  "c1_draft_c":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十一年 腊月",
+    beats:[
+      {t:"n", x:"他把这一句写下来。"},
+      {t:"n", x:"写完，他添了一长段：俄国人在东北做了什么，铁路从哪里修到哪里，护路军有多少人。"},
+      {t:"n", x:"这些都是从陈道台那些人的话里，一句一句捡出来的。"},
+      {t:"n", x:"——他没有去长沙，可是父亲回来了，饭桌上说的话，他都记着。"},
+      {t:"n", x:"文章寄出去了。两个月后，《直报》登了出来。"},
+      {t:"n", x:"登出来之后，出了点事。"},
+      {t:"n", x:"长沙有几位官员很不高兴。有人说，这是「妄议外事，摇动人心」。"},
+      {t:"n", x:"沈鹤龄在县里替儿子周旋了半个月。"},
+      {t:"n", x:"回家那天，他把帽子往桌上一放，说了句："},
+      {t:"d", w:"沈鹤龄", x:"你写的东西，我看了。"},
+      {t:"d", w:"沈鹤龄", x:"你说的那些事，都是真的。"},
+      {t:"d", w:"沈鹤龄", x:"可是怀瑾，真话是会说死人的。"},
+      {t:"n", x:"沈怀瑾没有答话。"},
+      {t:"n", x:"他后来才知道，父亲那句「真话是会说死人的」，说的是他十九岁那年的事。"}
+    ],
+    next:"c1_miyue"
+  },
+
+  "c1_miyue":{
+    ch:"第一章", chTitle:"熊", place:"湖南 · 湘乡 · 沈家书房", date:"光绪二十二年 五月",
+    beats:[
+      {t:"n", x:"第二年夏天，消息从上海传来。"},
+      {t:"n", x:"光绪二十二年四月，李鸿章赴俄，参加俄皇加冕。"},
+      {t:"n", x:"他从上海出发，经苏伊士运河，到彼得堡。"},
+      {t:"n", x:"五月，他与俄国签了一份条约。"},
+      {t:"n", x:"条约的内容，朝廷没有公布。"},
+      {t:"n", x:"可是《字林西报》登出来了。"},
+      {t:"q", x:"俄国获准在黑龙江、吉林地方修筑铁路，直达海参崴，名曰「东清铁路」。铁路沿线，俄国得设护路军，得开矿，得经商。战时俄国兵船得驶入中国所有口岸……",
+        src:"《中俄密约》要点 · 西文报纸所载，光绪二十二年"},
+      {t:"n", x:"沈怀瑾把这段抄下来，拿给父亲看。"},
+      {t:"n", x:"沈鹤龄看了很久。"},
+      {t:"n", x:"然后他把纸放在桌上，用手掌压平。"},
+      {t:"d", w:"沈鹤龄", x:"铁路修到哪里，兵就能开到哪里。"},
+      {t:"d", w:"沈鹤龄", x:"这句话，是谁教你的？"},
+      {t:"d", w:"沈怀瑾", x:"是父亲。"},
+      {t:"n", x:"沈鹤龄没有说话。"},
+      {t:"n", x:"他站起来，走到书架前，把那只箱子从架子底下拖了出来。"},
+      {t:"n", x:"箱子上有灰。"},
+      {t:"n", x:"他打开箱子，把《海国图志》一本一本拿出来，放回架子上。"},
+      {t:"n", x:"放完，他说了一句话。"},
+      {t:"d", w:"沈鹤龄", x:"怀瑾，你要做什么，就去做吧。"},
+      {t:"d", w:"沈鹤龄", x:"我老了。我这一辈人，把该学的都学了，该办的都办了，到头来还是这样。"},
+      {t:"d", w:"沈鹤龄", x:"剩下来的，是你们的。"},
+      {t:"n", x:"他说完，就出去看桂树了。"},
+      {t:"n", x:"那天晚上，沈怀瑾听见父亲在院子里站了很久。"}
+    ],
+    next:"c1_end"
+  },
+
+  "c1_end":{
+    ch:"第一章", chTitle:"熊", place:"天津 — 湖南", date:"光绪二十二年 冬",
+    beats:[
+      {t:"n", x:"这一年冬天，沈怀瑾离开了湘乡。"},
+      {t:"n", x:"他没有去考进士。"},
+      {t:"n", x:"他先去了天津，见严复。"},
+      {t:"n", x:"严复比他想的瘦，眼睛很亮，说话慢，一句是一句。"},
+      {t:"n", x:"两个人在水师学堂的一间小屋里谈了三天。"},
+      {t:"n", x:"严复跟他说：中国的事，不是三年五年的事，也不是一代人的事。"},
+      {t:"n", x:"严复还说：我打算自己办一份报。"},
+      {t:"d", w:"沈怀瑾", x:"什么时候？"},
+      {t:"d", w:"严复", x:"等我想清楚了，就办。"},
+      {t:"n", x:"（第二年十月，严复在天津创办《国闻报》。）"},
+      {t:"n", x:"——"},
+      {t:"n", x:"离开天津的前一夜，沈怀瑾在客栈里把三样东西摊在桌上。"},
+      {t:"n", x:"邸报抄件。《直报》。台湾的地址。"},
+      {t:"n", x:"他又添了第四样：严复的两封回信。"},
+      {t:"n", x:"他把四样东西叠在一起，用一块蓝布包好。"},
+      {t:"n", x:"那块蓝布，是他母亲给他缝的。"},
+      {t:"map", reveal:["ru"], text:"熊，从北方来了。它不叫，它只是慢慢地走，走到哪里，哪里就成了它的。"},
+      {t:"n", x:"第一章终。"}
+    ],
+    next:"c1_tbc"
+  },
+
+  "c1_tbc":{
+    ch:"第一章", chTitle:"熊", place:"体验版终", date:"",
+    beats:[
+      {t:"tbc"}
+    ],
+    next:null
+  }
+
+  }
+};
+
+/* ============================================================================
+   引擎
+   ============================================================================ */
+(function(){
+"use strict";
+
+const $  = s => document.querySelector(s);
+const el = (tag, cls, txt) => { const n = document.createElement(tag);
+  if(cls) n.className = cls; if(txt != null) n.textContent = txt; return n; };
+
+const SAVE_KEY = "shijutu_save_v1";
+
+let S = {
+  shen:0, lin:0, flags:{}, scene:SCRIPT.start, idx:0,
+  unlocked:{}, endings:{}, log:[], chapter:""
+};
+
+let typing = false, typeTimer = null, pendingResolve = null;
+
+/* --------------------------- 存档 --------------------------- */
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify({
+    shen:S.shen, lin:S.lin, flags:S.flags, scene:S.scene, idx:S.idx,
+    unlocked:S.unlocked, endings:S.endings, log:S.log.slice(-120), chapter:S.chapter
+  })); }catch(e){}
+}
+function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(!d) return false;
+    Object.assign(S, d);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* --------------------------- 觉醒度 --------------------------- */
+function setMeters(anim){
+  const ms = Math.max(0, Math.min(100, S.shen));
+  const ml = Math.max(0, Math.min(100, S.lin));
+  $("#fillShen").style.width = ms + "%";
+  $("#fillLin").style.width  = ml + "%";
+  $("#numShen").textContent = S.shen;
+  $("#numLin").textContent  = S.lin;
+}
+function gain(kind, n){
+  if(kind === "shen"){ S.shen += n; }
+  else if(kind === "lin"){ S.lin += n; }
+  setMeters();
+  toast((kind === "shen" ? "沈怀瑾" : "林婉如") + " 觉醒 +" + n);
+}
+function toast(msg){
+  const box = $("#toast");
+  const t = el("div","toast-item", msg);
+  box.appendChild(t);
+  setTimeout(()=>{ t.classList.add("out"); setTimeout(()=>t.remove(), 520); }, 2200);
+}
+
+/* --------------------------- 顶栏 --------------------------- */
+function setTopbar(){
+  const sc = SCRIPT.scenes[S.scene];
+  if(!sc) return;
+  S.chapter = sc.ch;
+  $("#tbChapter").innerHTML = sc.ch + " · <b>" + sc.chTitle + "</b>";
+  const bits = [];
+  if(sc.place) bits.push(sc.place);
+  if(sc.date)  bits.push(sc.date);
+  $("#tbMeta").textContent = bits.join("　｜　");
+}
+
+/* --------------------------- 打字机 --------------------------- */
+function typeInto(node, text, speed){
+  return new Promise(resolve => {
+    if(!speed){ node.textContent = text; resolve(); return; }
+    typing = true;
+    let i = 0;
+    node.textContent = "";
+    const step = () => {
+      if(!typing){ node.textContent = text; typing = false; typeTimer = null; resolve(); return; }
+      i += Math.max(1, Math.round(text.length / 260));
+      node.textContent = text.slice(0, i);
+      if(i >= text.length){ typing = false; typeTimer = null; resolve(); return; }
+      typeTimer = setTimeout(step, speed);
+    };
+    typeTimer = setTimeout(step, speed);
+    pendingResolve = resolve;
+  });
+}
+function finishTyping(){ if(typing){ typing = false; if(typeTimer){clearTimeout(typeTimer);typeTimer=null;} } }
+
+/* --------------------------- 渲染 --------------------------- */
+const page = () => $("#page");
+
+function scrollDown(){ const st = $("#stage"); st.scrollTop = st.scrollHeight; }
+
+function renderCard(card){
+  const d = el("div","chapter-card");
+  d.appendChild(el("div","cc-num", card.num));
+  d.appendChild(el("div","cc-title", card.title));
+  d.appendChild(el("div","cc-sub", card.sub));
+  page().appendChild(d);
+}
+
+function pushLog(who, text){
+  S.log.push({ c:S.chapter, w:who, x:text });
+  if(S.log.length > 400) S.log.shift();
+}
+
+function beatNode(b){
+  const wrap = el("div","beat");
+  if(b.t === "n"){
+    const p = el("div","line narration" + (b.emph ? " emph" : ""));
+    wrap.appendChild(p);
+    pushLog("", b.x);
+    return { wrap, node:p, text:b.x, speed:12 };
+  }
+  if(b.t === "d"){
+    const sp = el("div","speaker");
+    sp.textContent = b.w;
+    if(b.r) sp.appendChild(el("span","role", "· " + b.r));
+    const p = el("div","line");
+    wrap.appendChild(sp); wrap.appendChild(p);
+    pushLog(b.w, b.x);
+    return { wrap, node:p, text:b.x, speed:16 };
+  }
+  if(b.t === "q"){
+    const q = el("div","quote");
+    const tx = el("div","q-text"); tx.textContent = b.x;
+    q.appendChild(tx);
+    if(b.src) q.appendChild(el("div","q-src","—— " + b.src));
+    wrap.appendChild(q);
+    pushLog("【引文】", b.x);
+    return { wrap, node:null, text:null, speed:0 };
+  }
+  if(b.t === "letter"){
+    const L = el("div","letter");
+    const h = el("div","letter-head");
+    h.appendChild(el("div","letter-to", b.to || b.title || ""));
+    h.appendChild(el("div","letter-date", b.date || ""));
+    L.appendChild(h);
+    L.appendChild(el("div","letter-body", b.body || ""));
+    if(b.sig){
+      const sg = el("div","letter-sig");
+      sg.appendChild(document.createTextNode(b.sig));
+      if(b.seal){ const s = el("span","seal"); s.textContent = b.seal; sg.appendChild(s); }
+      L.appendChild(sg);
+    }
+    wrap.appendChild(L);
+    pushLog("【书信】" + (b.title || ""), b.body || "");
+    return { wrap, node:null, text:null, speed:0 };
+  }
+  return null;
+}
+
+/* 当前待处理的 choice 节点 */
+let choicePending = false;
+
+function renderCurrent(){
+  const sc = SCRIPT.scenes[S.scene];
+  if(!sc) return;
+  setTopbar();
+
+  if(S.idx >= sc.beats.length){
+    // 场景结束
+    if(sc.next){ gotoScene(sc.next); }
+    else { showEndOfDemo(); }
+    return;
+  }
+
+  const b = sc.beats[S.idx];
+
+  if(b.t === "choice"){
+    choicePending = true;
+    renderChoices(b);
+    return;
+  }
+  if(b.t === "map"){
+    (b.reveal || []).forEach(id => { S.unlocked[id] = true; });
+    const w = el("div","beat");
+    const q = el("div","quote");
+    q.appendChild(el("div","q-text", "【时局图 · 展开】" + (b.text || "")));
+    q.appendChild(el("div","q-src","—— 点击右上角「时局图」查看"));
+    w.appendChild(q);
+    page().appendChild(w);
+    toast("时局图 · 新增标记");
+    save();
+    S.idx++; setTimeout(renderCurrent, 520); return;
+  }
+  if(b.t === "tbc"){
+    renderTBC(); return;
+  }
+
+  const built = beatNode(b);
+  if(!built){ S.idx++; renderCurrent(); return; }
+  page().appendChild(built.wrap);
+  scrollDown();
+
+  if(built.node && built.speed){
+    typeInto(built.node, built.text, built.speed).then(()=>{
+      setHint(true);
+    });
+    setHint(false);
+  }else{
+    setHint(true);
+  }
+}
+
+function setHint(on){
+  const h = $("#tapHint");
+  if(on && !choicePending && !isOverlayOpen()) h.classList.add("on");
+  else h.classList.remove("on");
+}
+
+function renderChoices(b){
+  const d = el("div","choices");
+  d.appendChild(el("div","choice-prompt", b.prompt || "你的选择"));
+  b.opts.forEach((o, i) => {
+    const btn = el("button","choice");
+    const mk = el("span","mark", "▸");
+    btn.appendChild(mk);
+    btn.appendChild(document.createTextNode(o.x));
+    if(o.hint) btn.appendChild(el("span","hint", o.hint));
+    btn.addEventListener("click", ev => {
+      ev.stopPropagation();
+      choicePending = false;
+      d.remove();
+      if(o.gain){ for(const k in o.gain) gain(k, o.gain[k]); }
+      if(o.flag) S.flags[o.flag] = true;
+      pushLog("【选择】", o.x);
+      S.scene = o.to; S.idx = 0; save();
+      page().innerHTML = "";
+      renderCurrent();
+    });
+    d.appendChild(btn);
+  });
+  page().appendChild(d);
+  scrollDown();
+  setHint(false);
+}
+
+/* --------------------------- 场景推进 --------------------------- */
+function gotoScene(id){
+  S.scene = id; S.idx = 0; save();
+  page().innerHTML = "";
+  const sc = SCRIPT.scenes[id];
+  if(!sc){ showEndOfDemo(); return; }
+  if(sc.card) renderCard(sc.card);
+  renderCurrent();
+  $("#stage").scrollTop = 0;
+}
+
+function advance(){
+  if(choicePending) return;
+  if(isOverlayOpen()) return;
+  if(typing){ finishTyping(); return; }
+  S.idx++;
+  save();
+  renderCurrent();
+}
+
+/* --------------------------- 时局图 --------------------------- */
+const CHINA_PATH = "M 315,13 L 390,59 L 364,114 L 326,135 L 309,146 L 285,145 L 300,152 L 320,159 L 302,168 L 312,211 L 297,261 L 264,293 L 240,313 L 228,302 L 186,302 L 165,279 L 114,248 L 54,198 L 30,140 L 102,54 L 180,45 Z";
+const TAIWAN_PATH = "M 320,246 L 327,250 L 330,260 L 327,271 L 321,267 L 318,255 Z";
+
+function buildMapSvg(){
+  const n = MARKERS.filter(m => S.unlocked[m.id]).length;
+  const dark = Math.min(0.62, n * 0.10);
+  let svg = '<svg id="mapSvg" viewBox="0 0 420 360" xmlns="http://www.w3.org/2000/svg">';
+  svg += '<defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="n"/>'
+       + '<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
+  svg += '<rect x="0" y="0" width="420" height="360" fill="#e8dcc0"/>';
+  svg += '<path d="' + CHINA_PATH + '" fill="#d8c9a6" stroke="#6b5a38" stroke-width="1.6" stroke-linejoin="round" filter="url(#rough)"/>';
+  svg += '<path d="' + TAIWAN_PATH + '" fill="#d8c9a6" stroke="#6b5a38" stroke-width="1.2" stroke-linejoin="round"/>';
+  svg += '<circle cx="238" cy="320" r="5" fill="#d8c9a6" stroke="#6b5a38" stroke-width="1"/>';
+  // 内部分区虚线（示意）
+  svg += '<path d="M 120,120 Q 200,150 300,140" fill="none" stroke="#b8a77f" stroke-width=".8" stroke-dasharray="3 4"/>';
+  svg += '<path d="M 160,70 Q 190,180 230,290" fill="none" stroke="#b8a77f" stroke-width=".8" stroke-dasharray="3 4"/>';
+  svg += '<text x="196" y="196" font-size="26" fill="#9c8a63" text-anchor="middle" letter-spacing="8" font-family="serif" opacity="0.55">大清国</text>';
+  // 夜色
+  svg += '<path d="' + CHINA_PATH + '" fill="#1a1408" opacity="' + dark + '"/>';
+  svg += '<path d="' + TAIWAN_PATH + '" fill="#1a1408" opacity="' + dark + '"/>';
+  // 动物标记
+  MARKERS.forEach(m => {
+    if(!S.unlocked[m.id]) return;
+    const g = m.glyph;
+    svg += '<g class="mk" opacity="0.96">';
+    svg += '<rect x="' + (m.cx-17) + '" y="' + (m.cy-17) + '" width="34" height="34" rx="2" '
+         + 'fill="#f4ead4" stroke="' + m.color + '" stroke-width="2.4" transform="rotate(-3 ' + m.cx + ' ' + m.cy + ')"/>';
+    svg += '<text x="' + m.cx + '" y="' + (m.cy+8) + '" font-size="21" fill="' + m.color + '" '
+         + 'text-anchor="middle" font-family="serif" font-weight="bold">' + g + '</text>';
+    svg += '<text x="' + (m.cx+22) + '" y="' + (m.cy-18) + '" font-size="9.5" fill="' + m.color
+         + '" font-family="serif" opacity="0.9">' + m.name + '</text>';
+    svg += '</g>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function openMap(){
+  const n = MARKERS.filter(m => S.unlocked[m.id]).length;
+  let side = '<h4>列 强 势 力 范 围</h4><div class="map-legend">';
+  MARKERS.forEach(m => {
+    const on = !!S.unlocked[m.id];
+    side += '<div class="legend-row' + (on ? ' on' : '') + '">'
+         +  '<div class="legend-glyph" style="color:' + (on ? m.color : '#8a8070') + '">' + m.glyph + '</div>'
+         +  '<div class="legend-txt"><b>' + m.name + ' · ' + m.region + '</b>'
+         +  '<em>' + (on ? m.desc : '尚未揭开') + '</em></div></div>';
+  });
+  side += '</div>';
+  side += '<div class="map-progress">已揭开 <b>' + n + '</b> / ' + MARKERS.length + ' 个标记。<br>'
+       +  (n >= MARKERS.length ? '瓜分豆剖，图上再无留白。'
+            : n === 0 ? '图上尚是完整的。' : '每一章，动物会再走近一步。') + '</div>';
+
+  openOverlay("时 局 图", '<div class="map-wrap">' + buildMapSvg() + '<div class="map-side">' + side + '</div></div>');
+}
+
+/* --------------------------- 史实注 --------------------------- */
+function openNotes(){
+  const chs = ["序章","第一章"];
+  let h = "";
+  chs.forEach(c => {
+    if(!NOTES[c]) return;
+    h += '<div class="log-chapter">' + c + '</div>';
+    NOTES[c].forEach(n => {
+      h += '<div class="note-item"><div class="note-h">' + n.h + '</div><div class="note-b">' + n.b + '</div></div>';
+    });
+  });
+  h += '<div class="note-item"><div class="note-h">后续章节史实注</div>'
+     + '<div class="note-b">第二章至第五章及五个结局的史实注，将随对应章节正文一并提供。'
+     + '本体验版仅收录序章与第一章已写就部分的史实依据。</div></div>';
+  openOverlay("史 实 注 · 序章 与 第一章", h);
+}
+
+/* --------------------------- 回想 --------------------------- */
+function openLog(){
+  if(!S.log.length){ openOverlay("回 想", '<div class="note-b">尚无记录。</div>'); return; }
+  let h = "", cur = null;
+  S.log.forEach(e => {
+    if(e.c !== cur){ cur = e.c; h += '<div class="log-chapter">' + (cur || "") + '</div>'; }
+    h += '<div class="log-entry">';
+    if(e.w) h += '<div class="log-who">' + e.w + '</div>';
+    h += '<div class="log-txt">' + e.x.replace(/</g,"&lt;") + '</div></div>';
+  });
+  openOverlay("回 想", h);
+}
+
+/* --------------------------- 结局图鉴 --------------------------- */
+function openEndings(){
+  let h = "";
+  ENDINGS.forEach(e => {
+    const got = !!S.endings[e.id];
+    h += '<div class="ending-card' + (got ? '' : ' locked') + '">'
+      +  (got ? '<div class="tag">已达成</div>' : '')
+      +  '<h4>' + e.name + '</h4>'
+      +  '<p><b style="font-weight:400;color:#8a6a3b">条件：</b>' + e.cond + '</p>'
+      +  '<p style="margin-top:8px">' + (got ? e.body : '（尚未解锁）') + '</p>'
+      +  '</div>';
+  });
+  h += '<div class="note-b" style="margin-top:16px;color:#7d7364">'
+     + '本体验版止于第一章。五个结局将在后续章节完成后开启。</div>';
+  openOverlay("结 局 图 鉴", h);
+}
+
+/* --------------------------- 创作说明 --------------------------- */
+function openAbout(){
+  const h =
+    '<div class="note-item"><div class="note-h">作品</div><div class="note-b">'
+    + '《时局图》历史互动视觉小说。时代背景为1895年《马关条约》签订至1899年前后，'
+    + '列强掀起瓜分中国狂潮、民族危机空前深重的时期。</div></div>'
+  + '<div class="note-item"><div class="note-h">核心主题</div><div class="note-b">'
+    + '在「国已不国」的至暗时刻，不同阶层、不同立场的中国人如何面对亡国灭种的现实，'
+    + '以及「醒」与「不醒」之间的艰难抉择。</div></div>'
+  + '<div class="note-item"><div class="note-h">视觉核心</div><div class="note-b">'
+    + '以《时局图》为视觉核心意象。每一章以图中一只象征列强的动物为题，暗喻危机步步加深。'
+    + '序章起于台湾，第一章为熊，其后依次为虎、蛙、日、狮。</div></div>'
+  + '<div class="note-item"><div class="note-h">互动机制</div><div class="note-b">'
+    + '一、觉醒度：沈怀瑾、林婉如各自独立的数值，由对话选择与事件应对积累，影响可解锁叙事线与最终结局。<br>'
+    + '二、书信系统：关键信息以书信呈现，部分书信允许玩家改写结尾，产生后续回响。<br>'
+    + '三、时局图动态呈现：随剧情推进，代表列强的动物逐一出现，占据版图。'
+    + '点击右上角「时局图」可随时凝视当前局势。</div></div>'
+  + '<div class="note-item"><div class="note-h">史实依据</div><div class="note-b">'
+    + '剧中关键历史事件、人物言论、条约细节均有史料依据，详见「史实注」。'
+    + '沈怀瑾、沈鹤龄、林婉如、黎景高、黎景明、周子安、陈道台等为虚构人物；'
+    + '严复、康有为、张謇、谭嗣同、丘逢甲、刘永福等为历史人物。'
+    + '虚构人物的经历与对话系创作性重构，用以串联宏大历史与个体体验。</div></div>'
+  + '<div class="note-item"><div class="note-h">本体验版范围</div><div class="note-b">'
+    + '序章「春愁」与第一章「熊」为完整可玩内容，共24个场景、478个叙事节拍、约八千七百字。'
+    + '第二章至第五章及五个结局已搭好结构骨架，将分章续写。</div></div>';
+  openOverlay("创 作 说 明", h);
+}
+
+/* --------------------------- 未完待续 --------------------------- */
+function renderTBC(){
+  const h = '<div class="tbc">'
+    + '<h3>未完待续</h3>'
+    + '<div class="tbc-sub">体验版止于此处 · 以下章节已搭好结构骨架</div>'
+    + '<div class="tbc-row"><div class="k">第二章</div><div class="v"><b style="font-weight:400">虎</b> · 商战与实业（1897—1898）'
+    + '<br>视角切换至林婉如。德国强占胶州湾；张謇创办大生纱厂。分支：投身实业 / 暗中救国 / 犹豫观望。</div></div>'
+    + '<div class="tbc-row"><div class="k">第三章</div><div class="v"><b style="font-weight:400">蛙</b> · 瓜分豆剖（1898）'
+    + '<br>《时局图》问世。法国租借广州湾，英国租借威海卫与新界。双线并行：广传《时局图》 / 沉默的见证。</div></div>'
+    + '<div class="tbc-row"><div class="k">第四章</div><div class="v"><b style="font-weight:400">太阳</b> · 台湾的悲剧（1895—1898）'
+    + '<br>黎景高书信线。台湾民主国成立与乙未抗日。分支：赴台助战 / 留在大陆接应。</div></div>'
+    + '<div class="tbc-row"><div class="k">第五章</div><div class="v"><b style="font-weight:400">狮</b> · 醒与未醒（1898—1899）'
+    + '<br>戊戌变法及其失败。沈怀瑾与林婉如在上海相遇。核心选择决定结局走向。</div></div>'
+    + '<div class="tbc-row"><div class="k">结局</div><div class="v">醒狮 / 孤臣泪 / 沥血肥虎 / 永清 / 东渡 —— 共五个。</div></div>'
+    + '</div>'
+    + '<div class="choices" style="margin-top:26px">'
+    + '<button class="choice" id="tbcEndings"><span class="mark">▸</span>查看结局图鉴</button>'
+    + '<button class="choice" id="tbcMap"><span class="mark">▸</span>凝视当前的《时局图》</button>'
+    + '<button class="choice" id="tbcTitle"><span class="mark">▸</span>返回标题</button>'
+    + '</div>';
+  const w = el("div","beat"); w.innerHTML = h;
+  page().appendChild(w); scrollDown();
+  $("#tbcEndings").addEventListener("click", e => { e.stopPropagation(); openEndings(); });
+  $("#tbcMap").addEventListener("click", e => { e.stopPropagation(); openMap(); });
+  $("#tbcTitle").addEventListener("click", e => { e.stopPropagation(); toTitle(); });
+  setHint(false);
+  save();
+}
+
+function showEndOfDemo(){ renderTBC(); }
+
+/* --------------------------- 弹层 --------------------------- */
+function isOverlayOpen(){ return $("#overlays").children.length > 0; }
+function openOverlay(title, html){
+  const ov = el("div","overlay");
+  const pn = el("div","panel");
+  const hd = el("div","panel-head");
+  hd.appendChild(el("div","panel-title", title));
+  const cl = el("button","panel-close", "✕");
+  cl.addEventListener("click", closeOverlay);
+  hd.appendChild(cl);
+  pn.appendChild(hd);
+  const bd = el("div","panel-body"); bd.innerHTML = html;
+  pn.appendChild(bd);
+  ov.appendChild(pn);
+  ov.addEventListener("click", e => { if(e.target === ov) closeOverlay(); });
+  $("#overlays").appendChild(ov);
+  setHint(false);
+}
+function closeOverlay(){ $("#overlays").innerHTML = ""; setHint(true); }
+
+/* --------------------------- 菜单 --------------------------- */
+function openMenu(){
+  const h = '<div class="choices" style="margin-top:0">'
+    + '<button class="choice" id="mSave"><span class="mark">▸</span>存档</button>'
+    + '<button class="choice" id="mLoad"><span class="mark">▸</span>读档</button>'
+    + '<button class="choice" id="mMap"><span class="mark">▸</span>时局图</button>'
+    + '<button class="choice" id="mNotes"><span class="mark">▸</span>史实注</button>'
+    + '<button class="choice" id="mTitle"><span class="mark">▸</span>返回标题</button>'
+    + '</div>';
+  openOverlay("菜 单", h);
+  $("#mSave").addEventListener("click", ()=>{ save(); closeOverlay(); toast("已存档"); });
+  $("#mLoad").addEventListener("click", ()=>{ closeOverlay(); doLoad(); });
+  $("#mMap").addEventListener("click", ()=>{ closeOverlay(); openMap(); });
+  $("#mNotes").addEventListener("click", ()=>{ closeOverlay(); openNotes(); });
+  $("#mTitle").addEventListener("click", ()=>{ closeOverlay(); toTitle(); });
+}
+
+/* --------------------------- 流程控制 --------------------------- */
+function newGame(){
+  S = { shen:0, lin:0, flags:{}, scene:SCRIPT.start, idx:0,
+        unlocked:{}, endings:{}, log:[], chapter:"" };
+  $("#titleScreen").classList.add("fade-out");
+  setTimeout(()=>$("#titleScreen").classList.add("hidden"), 700);
+  $("#game").classList.remove("hidden");
+  setMeters();
+  gotoScene(SCRIPT.start);
+}
+function doLoad(){
+  if(!load()){ toast("没有找到存档"); return; }
+  $("#titleScreen").classList.add("fade-out");
+  setTimeout(()=>$("#titleScreen").classList.add("hidden"), 700);
+  $("#game").classList.remove("hidden");
+  setMeters();
+  const sc = SCRIPT.scenes[S.scene];
+  page().innerHTML = "";
+  if(sc && sc.card) renderCard(sc.card);
+  setTopbar();
+  renderCurrent();
+}
+function toTitle(){
+  $("#overlays").innerHTML = "";
+  $("#game").classList.add("hidden");
+  const ts = $("#titleScreen");
+  ts.classList.remove("hidden");
+  requestAnimationFrame(()=> ts.classList.remove("fade-out"));
+  $("#btnContinue").disabled = !hasSave();
+}
+
+/* --------------------------- 事件绑定 --------------------------- */
+$("#btnNew").addEventListener("click", newGame);
+$("#btnContinue").addEventListener("click", doLoad);
+$("#btnEndings").addEventListener("click", openEndings);
+$("#btnAbout").addEventListener("click", openAbout);
+
+$("#btnMap").addEventListener("click", openMap);
+$("#btnNotes").addEventListener("click", openNotes);
+$("#btnLog").addEventListener("click", openLog);
+$("#btnMenu").addEventListener("click", openMenu);
+
+$("#stage").addEventListener("click", e => {
+  if(e.target.closest(".choice") || e.target.closest(".choices")) return;
+  advance();
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape"){ closeOverlay(); return; }
+  if($("#game").classList.contains("hidden")) return;
+  if(isOverlayOpen()) return;
+  if(e.key === " " || e.key === "Enter"){ e.preventDefault(); advance(); }
+  if(e.key === "m" || e.key === "M") openMap();
+  if(e.key === "l" || e.key === "L") openLog();
+});
+
+$("#btnContinue").disabled = !hasSave();
+
+})();
+</script>
+</body>
+</html>
