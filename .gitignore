@@ -10,6 +10,7 @@ Desktop.ini
 *.bak
 _check.js
 _syntax.js
+_play.js
 
 # 依赖（本项目无外部依赖，预留）
 node_modules/
