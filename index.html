@@ -94,6 +94,23 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 }
 .ts-btn:hover:not(:disabled){background:rgba(190,140,60,.14);border-color:#96794a;color:#f0e2c2;letter-spacing:.4em;}
 .ts-btn:disabled{opacity:.28;cursor:default;}
+/* 重置。**刻意跟上面五颗拉开层次** —— 无边框、小字号、暗金，
+   一是因为它不该跟「新 的 一 局」抢眼，二是破坏性动作长得越像主按钮
+   越容易被误点。 */
+.ts-reset{
+  margin-top:26px;padding:4px 10px;border:0;background:none;
+  color:#5e5340;font-size:12px;letter-spacing:.3em;text-indent:.3em;
+  transition:color .28s ease;
+}
+.ts-reset:hover{color:#a8946c;}
+/* 「结束游戏」。与 .ts-reset 同一套安静的小字链接版式 —— 都是收在
+   主按钮群下面的次要动作，观感上不能抢「新 的 一 局」的戏。 */
+.ts-quit{
+  margin-top:8px;padding:4px 10px;border:0;background:none;
+  color:#5e5340;font-size:12px;letter-spacing:.3em;text-indent:.3em;
+  transition:color .28s ease;
+}
+.ts-quit:hover{color:#a8946c;}
 .ts-foot{position:absolute;bottom:26px;width:100%;text-align:center;font-size:11.5px;color:#5e5340;letter-spacing:.22em;}
 
 /* ============================ 主舞台 ============================ */
@@ -431,6 +448,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
       <button class="ts-btn" id="btnEndings">结 局 图 鉴</button>
       <button class="ts-btn" id="btnAbout">创 作 说 明</button>
     </div>
+    <button class="ts-reset" id="btnReset">重 置 游 戏</button>
+    <button class="ts-quit" id="btnQuit">结 束 游 戏</button>
   </div>
   <div class="ts-foot">1895 — 1899 · 序章 至 第五章 · 五个结局</div>
 </div>
@@ -3512,10 +3531,17 @@ const el = (tag, cls, txt) => { const n = document.createElement(tag);
 
 const SAVE_KEY = "shijutu_save_v1";
 
-let S = {
-  shen:0, lin:0, flags:{}, scene:SCRIPT.start, idx:0,
-  unlocked:{}, endings:{}, log:[], chapter:""
-};
+/* 初始状态。**只有这一个出处** —— 声明、newGame()、resetGame() 三处
+   都要一份干净的 S，各写一遍字面量迟早会长歪（少一个键就是读档时的
+   一个 undefined）。 */
+function freshState(){
+  return {
+    shen:0, lin:0, flags:{}, scene:SCRIPT.start, idx:0,
+    unlocked:{}, endings:{}, log:[], chapter:""
+  };
+}
+
+let S = freshState();
 
 let typing = false, typeTimer = null, pendingResolve = null, pendingNode = null, pendingText = null;
 
@@ -4234,8 +4260,7 @@ function openSaves(mode){
 
 /* --------------------------- 流程控制 --------------------------- */
 function newGame(){
-  S = { shen:0, lin:0, flags:{}, scene:SCRIPT.start, idx:0,
-        unlocked:{}, endings:{}, log:[], chapter:"" };
+  S = freshState();
   $("#titleScreen").classList.add("fade-out");
   setTimeout(()=>$("#titleScreen").classList.add("hidden"), 700);
   $("#game").classList.remove("hidden");
@@ -4251,12 +4276,47 @@ function toTitle(){
   $("#btnContinue").disabled = !hasSave();
 }
 
+/* --------------------------- 重置 --------------------------- */
+/* 恢复到刚打开的样子：五格存档 + 自动存档 + 当前进度 + 结局图鉴全清。
+ *
+ * ⚠️ 不能用 localStorage.clear() —— 同一个源下面可能还有别人写的键，
+ *    只删自己这两个（SAVE_KEY 与 SLOT_KEY(1..5)）。
+ *
+ * ⚠️ 结局图鉴的解锁记录**就存在自动存档里**（见 snapshot()），没有单独的键，
+ *    所以删掉 SAVE_KEY 就等于清了图鉴。但内存里那份 S.endings 也得清 ——
+ *    不清的话「结局图鉴」那一屏读的还是它，重置完点开一看五个结局还亮着。
+ *
+ * ⚠️ 玩家此刻可能正停在标题页（S 是上一局留下的），也可能刚玩到一半点
+ *    「返回标题」回来 —— 两种都得把 S 换掉。
+ */
+function resetGame(){
+  if(!window.confirm("确定要重置游戏吗？\n全部存档、进度与结局图鉴都会被清除，且无法撤销。")) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  for(let i = 1; i <= SLOTS; i++) slotClear(i);
+  S = freshState();
+  $("#btnContinue").disabled = true;
+  toast("已重置");
+}
+
+/* 「结 束 游 戏」—— 与 Ren'Py 版 Quit(confirm=True) 同一款流程：确认一次，
+   然后 window.close()。浏览器只允许脚本关掉「脚本自己打开的」标签页，
+   玩家手动开的关不掉、close() 静默失败 —— 所以 close() 之后再补一张
+   告别幕：真关掉了它没机会渲染；没关掉，玩家也知道下一步该干什么。 */
+function quitGame(){
+  if(!window.confirm("确定要退出游戏吗？")) return;
+  window.close();
+  setTimeout(() => openOverlay("再 会",
+    "<p>本局到此为止。<br>可以关闭此标签页了；想回来接着玩，点右上角的 ✕。</p>"), 80);
+}
+
 /* --------------------------- 事件绑定 --------------------------- */
 $("#btnNew").addEventListener("click", newGame);
 $("#btnContinue").addEventListener("click", doLoad);
 $("#btnSlots").addEventListener("click", () => openSaves("load"));
 $("#btnEndings").addEventListener("click", openEndings);
 $("#btnAbout").addEventListener("click", openAbout);
+$("#btnReset").addEventListener("click", resetGame);
+$("#btnQuit").addEventListener("click", quitGame);
 
 $("#btnFF").addEventListener("click", () => setFFOn(!ffOn));
 $("#btnMap").addEventListener("click", openMap);
