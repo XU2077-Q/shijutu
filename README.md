@@ -243,3 +243,11 @@ python -m http.server 8000
 ## 后续开发
 
 剧本数据采用场景图结构，每个场景包含若干叙事节拍（narration / dialogue / quote / letter / choice / map），迁移至 Ren'Py 或 Unity 时只需转换数据层，叙事内容可原样保留。
+
+## 创作与开发
+
+- **原作与策划**：XU2077-Q ——《时局图》文字版权归原作者。
+- **工程实现**：ZCode GLM（智谱）—— 网页版引擎与剧本、GitHub Pages 部署、
+  重置游戏与退出入口；另有同名 Ren'Py 移植版与 Godot RPG 版（见 shijutu-rpg 仓库）。
+- **剧本扩写**：31 条扩写读本（时代背景 / 小人物 / 感情线 / 主角线），
+  已接入网页版与 Godot RPG 版。
